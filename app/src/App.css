@@ -1,0 +1,32 @@
+.app-container {
+    display: flex;           /* Create a flex container */
+    height: 100vh;           /* Full screen height */
+    overflow: hidden;
+    width: 100vw;            /* Full screen width */
+  }
+  
+  .sidebar {
+    background-color: #f0f4f9;
+    height: 100vh;           /* Make the sidebar fill the screen vertically */
+  }
+  
+  .right-pane {
+    display: flex;           /* Align content horizontally */
+    flex-grow: 1;             /* Take up the remaining space */
+    height: 100vh;           /* Ensure the right pane takes the full height */
+    overflow: hidden;
+    width: 100vw;
+  }
+  
+  .main-section {
+    width: 40%;              /* Main section takes half of the right pane */
+    overflow: auto;          /* Allow scrolling if necessary */
+    border-right: 1px solid #ccc;  /* Optional: Add a border between sections */
+  }
+  
+  .bpmn-section {
+    width: 100%;              /* BPMN Viewer takes the other half */
+    height: 100vh;            /* Ensure the height fills the container */
+    overflow: hidden;
+    position: relative;
+  }
