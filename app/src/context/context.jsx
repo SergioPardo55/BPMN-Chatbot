@@ -11,6 +11,7 @@ const ContextProvider = (props) => {
     const[showResult, setShowResult] = useState(false);
     const[loading, setLoading] = useState(false);
     const[resultData, setResultData] = useState("");
+    const[diagram, setDiagram] = useState("");
 
     const delayPara = (index, nextWord) =>{
         setTimeout(function () {
@@ -72,7 +73,9 @@ const ContextProvider = (props) => {
         resultData,
         input,
         setInput,
-        newChat
+        newChat,
+        diagram,
+        setDiagram,
     }
 
     return (
