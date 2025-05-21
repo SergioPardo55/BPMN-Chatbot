@@ -1,7 +1,6 @@
 export default class CustomPalette {
-    constructor(create, elementFactory, palette, translate) {
-      this.create = create;
-      this.elementFactory = elementFactory;
+    constructor(eventBus, palette, translate) { // Injected eventBus, removed bpmnJS, create, elementFactory
+      this.eventBus = eventBus;
       this.translate = translate;
   
       palette.registerProvider(this);
@@ -9,50 +8,29 @@ export default class CustomPalette {
   
     getPaletteEntries(element) {
       const {
-        create,
-        elementFactory,
-        translate
+        translate,
+        eventBus
       } = this;
   
-      function createServiceTask(event) {
-        const shape = elementFactory.createShape({ type: 'bpmn:ServiceTask' });
-  
-        create.start(event, shape);
-      }
-
-      function createWriteToDatabaseTask(event) {
-        const shape = elementFactory.createShape({ type: 'bpmn:UserTask' }); // Or bpmn:ServiceTask or your custom type
-        // You can set a default name if desired:
-        // shape.businessObject.name = 'Write to Database';
-        create.start(event, shape);
+      function toggleCustomToolsPanelAction() {
+        eventBus.fire('custom.togglePanel'); // Fire a custom event
       }
   
       return {
-        'create.service-task': {
-          group: 'custom', // Changed from 'activity' to 'custom'
-          className: 'bpmn-icon-service-task',
-          title: translate('Create ServiceTask'),
+        'toggle-custom-tools': {
+          group: 'tools',
+          imageUrl: "/appian-seeklogo.svg",
+          title: translate('Toggle Appian Smart-Services'),
           action: {
-            dragstart: createServiceTask,
-            click: createServiceTask
-          }
-        },
-        'create.write-to-database-task': {
-          group: 'custom', // Changed from 'activity' to 'custom'
-          className: 'bpmn-icon-data-store', // Using data store icon, can be changed
-          title: translate('Create Write to Database Task'),
-          action: {
-            dragstart: createWriteToDatabaseTask,
-            click: createWriteToDatabaseTask
+            click: toggleCustomToolsPanelAction
           }
         }
-      }
+      };
     }
   }
   
   CustomPalette.$inject = [
-    'create',
-    'elementFactory',
+    'eventBus',
     'palette',
     'translate'
   ];

@@ -25,4 +25,89 @@
     position: fixed;
     bottom: 20px;
     left: 20px;
+    z-index: 10; /* Ensure it's above the canvas but potentially below a panel */
 }
+
+/* Custom Tools Panel Styling */
+.custom-tools-panel {
+    position: absolute;
+    top: 50px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 10px;
+    z-index: 100; /* Ensure it's above the canvas */
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 5px; /* Space between buttons */
+}
+
+.custom-tool-button {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    cursor: grab;
+    font-weight: bolder;
+    font-size: 20px; /* Adjust icon size if using icon font */
+    padding: 5px;
+    margin-bottom: 5px; /* Space between buttons */
+    display: flex; /* For centering image/icon */
+    align-items: center; /* For centering image/icon */
+    justify-content: center; /* For centering image/icon */
+    width: 40px; /* Fixed width for buttons */
+    height: 40px; /* Fixed height for buttons */
+}
+
+.custom-tool-button:hover {
+    border-color: #999;
+}
+
+.custom-tool-button img {
+    width: 30px; /* Adjust as needed */
+    height: 30px; /* Adjust as needed */
+    object-fit: contain; /* Ensures the image scales nicely */
+}
+
+/* Optional: If you want text next to icons, adjust padding and alignment */
+/* .custom-tool-button span {
+    margin-left: 5px;
+} */
+
+/* Debug styles from previous attempts - can be removed if no longer needed */
+/* .djs-palette-entries {
+  display: flex !important;
+  flex-direction: column !important; 
+  align-items: flex-start !important; 
+}
+
+.djs-palette-entries > .djs-palette-group[data-group="custom"] {
+  display: block !important;         
+  width: calc(100% - 10px) !important; 
+  margin: 15px 5px 5px 5px !important; 
+  padding: 25px 10px 10px 10px !important; 
+  border: 2px dashed red !important;  
+  background-color: lightyellow !important; 
+  position: relative !important;      
+  box-sizing: border-box !important;
+  order: 100; 
+}
+
+.djs-palette-entries > .djs-palette-group[data-group="custom"]::before {
+  content: "Custom Tools" !important;
+  position: absolute !important;
+  top: 5px !important;                
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-weight: bold !important;
+  font-size: 12px !important;
+  color: black !important;
+  background-color: lightblue !important; 
+  padding: 3px 8px !important;
+  border-radius: 3px !important;
+  z-index: 1 !important;              
+}
+
+.djs-palette-entries > .djs-palette-group[data-group="custom"] .entry {
+  background-color: lightgreen !important; 
+  border: 1px solid darkgreen !important;
+} */

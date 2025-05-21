@@ -2,7 +2,6 @@ import React from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar/sidebar';
 import Main from './components/main/main';
-import BpmnViewer from './components/BPMN/Viewer';
 import BpmnJS from 'bpmn-js';
 import BPMNModeler from './components/BPMN/Modeler';
 
