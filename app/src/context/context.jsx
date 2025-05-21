@@ -77,7 +77,7 @@ const ContextProvider = (props) => {
     }
 
     const prepareStartModellingScratch = () => {
-        setRecentPrompt("Start modelling from scratch"); // This sets the context for the next user input
+        setRecentPrompt("Create template for process model"); // This sets the context for the next user input
         setResultData("Please roughly specify what the process should do and the goal of the process. For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping");
         setShowResult(true);
         setLoading(false);
@@ -93,11 +93,19 @@ const ContextProvider = (props) => {
     };
 
     const prepareCreateTemplate = () => {
-        setRecentPrompt("Create template for process model"); // Context for next input
+        setRecentPrompt("Start modelling session from scratch"); // Context for next input
         setResultData("Please specify the use case for the process model template (e.g., 'A generic customer onboarding process').");
         setShowResult(true);
         setLoading(false);
         setInput("");
+    };
+
+    const cancelPreparedAction = () => {
+        setRecentPrompt(""); // Clear the prepared action context
+        setResultData("Hi, welcome to Process Modeler Support! How can I help you today?"); // Reset to initial greeting
+        setShowResult(true); // Ensure the greeting/cards are visible
+        setInput(""); // Clear any text the user might have started typing
+        setLoading(false); // Ensure loading indicator is off
     };
 
     const onSent = async (payload) => { 
@@ -116,11 +124,11 @@ const ContextProvider = (props) => {
 
             // Construct the query for the AI based on pending card action (stored in recentPrompt state)
             // Note: 'recentPrompt' here refers to the state variable, reflecting the last card action that prepared for input.
-            if (recentPrompt === "Start modelling from scratch") {
+            if (recentPrompt === "Create template for process model") {
                 queryToSendToAI = `Based on the following description, create a BPMN process model: ${userInput}`;
             } else if (recentPrompt === "Create process model from description") {
                 queryToSendToAI = `Create a BPMN process model based on the following description: ${userInput}`;
-            } else if (recentPrompt === "Create template for process model") {
+            } else if (recentPrompt === "Start modelling session from scratch") {
                 queryToSendToAI = `Create a template for a BPMN process model for the following use case: ${userInput}`;
             } else {
                 // Default case: No specific card action was pending, or recentPrompt was a previous user input.
@@ -257,8 +265,9 @@ const ContextProvider = (props) => {
         setDiagramXML, 
         reportRenderAttempt,
         prepareStartModellingScratch,
-        prepareCreateFromDescription, // Add new function
-        prepareCreateTemplate, // Add new function
+        prepareCreateFromDescription, 
+        prepareCreateTemplate, 
+        cancelPreparedAction, // Add cancelPreparedAction to context
     }
 
     return (

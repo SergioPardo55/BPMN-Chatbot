@@ -7,9 +7,10 @@ const Main =() =>{
 
         const {
             onSent,recentPrompt,showResult,loading,resultData,setInput,input,
-            prepareStartModellingScratch, // NEW from context
-            prepareCreateFromDescription, // NEW from context
-            prepareCreateTemplate // NEW from context
+            prepareStartModellingScratch, 
+            prepareCreateFromDescription, 
+            prepareCreateTemplate,
+            cancelPreparedAction // Destructure cancelPreparedAction from context
         } = useContext(Context);
         
         const [awaitingFileUploadForAction, setAwaitingFileUploadForAction] = useState(null); // This is the correct local state
@@ -116,7 +117,7 @@ const Main =() =>{
                         {!loading && !recentPrompt && !awaitingFileUploadForAction && (
                             <div className="cards initial-options"> 
                                 <div className="card" onClick={handleStartModellingClick}> {/* MODIFIED HERE */}
-                                    <p>Start modelling from scratch</p>
+                                    <p>Create template for process model</p>
                                     <img src={assets.bulb_icon} alt="Start fresh" />
                                 </div>
                                 <div className="card" onClick={() => setAwaitingFileUploadForAction('analyze')}>
@@ -132,7 +133,7 @@ const Main =() =>{
                                     <img src={assets.message_icon} alt="Create from description" />
                                 </div>
                                 <div className="card" onClick={handleCreateTemplateClick}> {/* MODIFIED HERE */}
-                                    <p>Create template for process model</p>
+                                    <p>Start modelling session from scratch</p>
                                     <img src={assets.code_icon} alt="Create template" />
                                 </div>
                             </div>
@@ -157,6 +158,12 @@ const Main =() =>{
                                     <button onClick={processUploadedFile} className="process-file-btn">Process File</button>
                                 )}
                                 <button onClick={cancelFileUpload} className="cancel-upload-btn">Cancel</button>
+                            </div>
+                        )}
+                        {/* Cancel button for prepared actions (when recentPrompt is set and not loading/not file uploading) */}
+                        {!loading && recentPrompt && !awaitingFileUploadForAction && (
+                            <div className="prepared-action-cancel-section">
+                                <button onClick={cancelPreparedAction} className="cancel-prepared-action-btn">Cancel</button>
                             </div>
                         )}
                     </div>
