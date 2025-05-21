@@ -1,16 +1,23 @@
 import React, { useContext, useState, useRef } from "react"; // Added useRef
 import './Main.css'
 import { assets } from "../../assets/assets";
-import { Context } from "../../context/context";
+import { Context } from "../../context/AppContext"; // Updated import path
 
 const Main =() =>{
 
         const {
             onSent,recentPrompt,showResult,loading,resultData,setInput,input,
+            prevPrompts, // ADDED
+            prevResults, // ADDED
             prepareStartModellingScratch, 
             prepareCreateFromDescription, 
             prepareCreateTemplate,
-            cancelPreparedAction // Destructure cancelPreparedAction from context
+            prepareGenerateModel, 
+            prepareRecommendUpload, // ADDED
+            cancelPreparedAction, 
+            toggleIncludeDiagram, 
+            includeDiagramInPrompt, 
+            renderDiagram // ADDED
         } = useContext(Context);
         
         const [awaitingFileUploadForAction, setAwaitingFileUploadForAction] = useState(null); // This is the correct local state
@@ -28,6 +35,10 @@ const Main =() =>{
 
         const handleCreateTemplateClick = () => {
             prepareCreateTemplate();
+        };
+
+        const handleGenerateModelClick = () => { // ADDED
+            prepareGenerateModel();
         };
 
         const handleFileSelect = (event) => {
@@ -86,7 +97,14 @@ const Main =() =>{
             setAwaitingFileUploadForAction(null);
             setSelectedFile(null);
             setSelectedFileName("");
+            cancelPreparedAction(); // ADDED: Call cancelPreparedAction to reset context states
         }
+
+        const handleInputKeyDown = (event) => {
+            if (event.key === 'Enter' && input) {
+                onSent(input);
+            }
+        };
 
     return(
         <div className="main">
@@ -97,10 +115,27 @@ const Main =() =>{
             <div className="main-container">
                 {showResult ? (
                     <div className="result">
-                        <div className="result-title">
-                            <img src={assets.user_icon} alt="" />
-                            <p>{recentPrompt ? recentPrompt : "Welcome"}</p>
-                        </div>
+                        {/* Display previous prompts and results */}
+                        {prevPrompts.map((prompt, index) => (
+                            <React.Fragment key={index}>
+                                <div className="result-title">
+                                    <img src={assets.user_icon} alt="" />
+                                    <p>{prompt}</p>
+                                </div>
+                                <div className="result-data">
+                                    <img src={assets.gemini_icon} alt="" />
+                                    <p dangerouslySetInnerHTML={{ __html: prevResults[index] }}></p>
+                                </div>
+                            </React.Fragment>
+                        ))}
+
+                        {/* Display current prompt and result/loader */}
+                        {recentPrompt && (
+                            <div className="result-title">
+                                <img src={assets.user_icon} alt="" />
+                                <p>{recentPrompt}</p>
+                            </div>
+                        )}
                         <div className="result-data">
                             <img src={assets.gemini_icon} alt="" />
                             {loading ? (
@@ -116,7 +151,7 @@ const Main =() =>{
                         {/* Display option cards if not loading, no recent prompt, and not awaiting file upload */}
                         {!loading && !recentPrompt && !awaitingFileUploadForAction && (
                             <div className="cards initial-options"> 
-                                <div className="card" onClick={handleStartModellingClick}> {/* MODIFIED HERE */}
+                                <div className="card" onClick={handleCreateTemplateClick}>
                                     <p>Create template for process model</p>
                                     <img src={assets.bulb_icon} alt="Start fresh" />
                                 </div>
@@ -124,17 +159,20 @@ const Main =() =>{
                                     <p>Analyze process model</p>
                                     <img src={assets.compass_icon} alt="Analyze" />
                                 </div>
-                                <div className="card" onClick={() => setAwaitingFileUploadForAction('recommend')}>
+                                <div className="card" onClick={() => { 
+                                    setAwaitingFileUploadForAction('recommend'); 
+                                    prepareRecommendUpload();
+                                }}>
                                     <p>Recommend next elements</p>
                                     <img src={assets.plus_icon} alt="Recommend" />
                                 </div>
-                                <div className="card" onClick={handleCreateFromDescriptionClick}> {/* MODIFIED HERE */}
+                                <div className="card" onClick={handleCreateFromDescriptionClick}>
                                     <p>Create process model from description</p>
                                     <img src={assets.message_icon} alt="Create from description" />
                                 </div>
-                                <div className="card" onClick={handleCreateTemplateClick}> {/* MODIFIED HERE */}
+                                <div className="card" onClick={handleStartModellingClick}> 
                                     <p>Start modelling session from scratch</p>
-                                    <img src={assets.code_icon} alt="Create template" />
+                                    <img src={assets.code_icon} alt="Start modelling session from scratch" />
                                 </div>
                             </div>
                         )}
@@ -164,7 +202,8 @@ const Main =() =>{
                         {!loading && !awaitingFileUploadForAction && 
                             (recentPrompt === "Create template for process model" || 
                              recentPrompt === "Create process model from description" || 
-                             recentPrompt === "Start modelling session from scratch") && (
+                             recentPrompt === "Start modelling session from scratch" ||
+                             recentPrompt === "Generate process model") && ( // ADDED "Generate process model"
                             <div className="prepared-action-cancel-section">
                                 <button onClick={cancelPreparedAction} className="cancel-prepared-action-btn">Cancel</button>
                             </div>
@@ -176,35 +215,74 @@ const Main =() =>{
                             <p><span>Hello, dev</span></p>
                             <p>How can I help you today?</p>
                         </div>
-                        <div className="cards">
-                            <div className="card">
-                                <p>Suggest beautiful places to see on an upcoming road trip</p>
-                                <img src={assets.compass_icon} alt="" />
+                        {!loading && !recentPrompt && !awaitingFileUploadForAction && (
+                            <div className="cards initial-options"> 
+                                <div className="card" onClick={handleCreateTemplateClick}>
+                                    <p>Create template for process model</p>
+                                    <img src={assets.bulb_icon} alt="Start fresh" />
+                                </div>
+                                <div className="card" onClick={() => setAwaitingFileUploadForAction('analyze')}>
+                                    <p>Analyze process model</p>
+                                    <img src={assets.compass_icon} alt="Analyze" />
+                                </div>
+                                <div className="card" onClick={() => { 
+                                    setAwaitingFileUploadForAction('recommend'); 
+                                    prepareRecommendUpload();
+                                }}>
+                                    <p>Recommend next elements</p>
+                                    <img src={assets.plus_icon} alt="Recommend" />
+                                </div>
+                                <div className="card" onClick={handleCreateFromDescriptionClick}>
+                                    <p>Create process model from description</p>
+                                    <img src={assets.message_icon} alt="Create from description" />
+                                </div>
+                                <div className="card" onClick={handleStartModellingClick}> 
+                                    <p>Start modelling session from scratch</p>
+                                    <img src={assets.code_icon} alt="Start modelling session from scratch" />
+                                </div>
                             </div>
-                            <div className="card">
-                                <p>Briefly summarize this concept: </p>
-                                <img src={assets.bulb_icon} alt="" />
-                            </div>
-                            <div className="card">
-                                <p>Brainstorm team bonding activities for our work retreat</p>
-                                <img src={assets.message_icon} alt="" />
-                            </div>
-                            <div className="card">
-                                <p>Improve the readibility of the following code</p>
-                                <img src={assets.code_icon} alt="" />
-                            </div>
-                        </div>
+                        )}
                     </>
                 )}
                 
                 <div className="main-bottom">
                     <div className="search-box">
                         {/* Pass 'input' to onSent when user types and sends */}
-                        <input onChange={(e)=>setInput(e.target.value)} value={input} type="text" placeholder="Enter prompt here" />
+                        <input 
+                            onChange={(e)=>setInput(e.target.value)} 
+                            onKeyDown={handleInputKeyDown} 
+                            value={input} 
+                            type="text" 
+                            placeholder={(renderDiagram && (recentPrompt === "Generate process model" || recentPrompt === "Create template for process model" || recentPrompt === "Create process model from description" || recentPrompt === "Recommend next elements from file")) ? "Describe the diagram to generate..." : "Enter prompt here"} 
+                        />
                         <div>
-                            <img src={assets.gallery_icon} alt="" />
-                            <img src={assets.mic_icon} alt="" />
-                            {input?<img onClick={()=>onSent(input)} src={assets.send_icon} alt="" />:null}
+                            {/* Main Gear Icon for initiating "Generate process model" or indicating an active diagram generation mode */}
+                            <img 
+                                src={(renderDiagram) ? assets.check_gear_icon : assets.gear_icon} 
+                                alt="Generate model / Diagram generation active" 
+                                title={(renderDiagram) ? "Diagram generation is active. Describe the diagram." : "Generate process model (click, then describe)"}
+                                onClick={handleGenerateModelClick} // This sets renderDiagram true and recentPrompt to "Generate process model"
+                                className={(renderDiagram) ? 'active' : ''} 
+                            />
+                            {/* Icon for Include Diagram */} 
+                            {includeDiagramInPrompt ? (
+                                <img 
+                                    src={assets.check_icon} 
+                                    alt="Diagram included - Click to exclude" 
+                                    title="Diagram included - Click to exclude"
+                                    onClick={toggleIncludeDiagram} 
+                                    className='active' 
+                                />
+                            ) : (
+                                <img 
+                                    src={assets.plus_icon} 
+                                    alt="Include current diagram in prompt" 
+                                    title="Include current diagram in prompt" 
+                                    onClick={toggleIncludeDiagram} 
+                                    className='' 
+                                />
+                            )}
+                            {input?<img onClick={()=>onSent(input)} src={assets.send_icon} alt=""  />:null}
                         </div>
                     </div>
                     <p className="bottom-info">

@@ -52,6 +52,10 @@
     border-radius: 10px;
     position: relative;
     cursor: pointer;
+    display: flex; /* Added */
+    flex-direction: column; /* Added */
+    justify-content: center; /* Added */
+    align-items: center; /* Changed from flex-start to center */
   }
   
   .main .card img {
@@ -67,6 +71,7 @@
   .main .card p {
     color: #585858;
     font-size: 17px;
+    text-align: center; /* Added for horizontal centering of text */
   }
   
   .main .card:hover {
@@ -95,6 +100,12 @@
   .search-box img {
     width: 24px;
     cursor: pointer;
+  }
+  
+  .search-box img.active {
+    background-color: #cce0ff;
+    border-radius: 50%;
+    padding: 2px; /* Optional: to give some space around the icon */
   }
   
   .search-box input {

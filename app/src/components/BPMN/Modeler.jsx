@@ -5,7 +5,8 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import './Modeler.css';
 import customControlsModule from '../custom';
-import { Context } from '../../context/context'; // Corrected path for Context
+import customModdleDescriptor from '../custom/custom.json'; // Import the custom Moddle descriptor
+import { Context } from '../../context/AppContext'; // Corrected path for Context
 import { appianSmartServices, APPIAN_ICON_BASE_URL } from '../custom/appianServices'; // Import Appian services
 
 function BPMNModeler() {
@@ -20,7 +21,10 @@ function BPMNModeler() {
             container: '#canvas',
             additionalModules: [
                 customControlsModule
-            ]
+            ],
+            moddleExtensions: { // Add this section
+                custom: customModdleDescriptor
+            }
             // keyboard: { bindTo: document } // Optional: bind keyboard shortcuts - REMOVED
         });
         bpmnModelerRef.current = modeler;

@@ -1,0 +1,30 @@
+{
+  "name": "CustomAppian",
+  "uri": "http://appian.com/bpmn/custom",
+  "prefix": "custom",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "types": [
+    {
+      "name": "CustomTask",
+      "extends": [
+        "bpmn:ServiceTask"
+      ],
+      "properties": [
+        {
+          "name": "customType",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "customIconUrl",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ],
+  "emumerations": [],
+  "associations": []
+}
