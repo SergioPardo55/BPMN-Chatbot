@@ -125,11 +125,13 @@ const ContextProvider = (props) => {
             // Construct the query for the AI based on pending card action (stored in recentPrompt state)
             // Note: 'recentPrompt' here refers to the state variable, reflecting the last card action that prepared for input.
             if (recentPrompt === "Create template for process model") {
-                queryToSendToAI = `Based on the following description, create a BPMN process model: ${userInput}`;
+                queryToSendToAI = `You will be given a rough idea of what a process should do and the goal of it. 
+                For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping. 
+                You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${userInput}`;
             } else if (recentPrompt === "Create process model from description") {
-                queryToSendToAI = `Create a BPMN process model based on the following description: ${userInput}`;
+                queryToSendToAI = `You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add.: ${userInput}`;
             } else if (recentPrompt === "Start modelling session from scratch") {
-                queryToSendToAI = `Create a template for a BPMN process model for the following use case: ${userInput}`;
+                queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${userInput}`;
             } else {
                 // Default case: No specific card action was pending, or recentPrompt was a previous user input.
                 queryToSendToAI = userInput;
