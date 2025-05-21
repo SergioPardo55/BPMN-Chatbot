@@ -105,11 +105,18 @@ function BPMNModeler() {
             return;
         }
         try {
-            const result = await bpmnModelerRef.current.saveXML({ format: true });
-            alert('Diagram exported. Check the developer tools!');
-            console.log('DIAGRAM', result.xml);
+            const { xml } = await bpmnModelerRef.current.saveXML({ format: true });
+            const blob = new Blob([xml], { type: 'application/bpmn20-xml;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'diagram.bpmn';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
         } catch (err) {
             console.error('could not save BPMN 2.0 diagram', err);
+            alert('Could not export diagram. See console for details.');
         }
     };
 
@@ -179,7 +186,12 @@ function BPMNModeler() {
     return (
         <div style={{ height: '100%', width: '100%', position: 'relative' }}> {/* Added width and position relative for button positioning */}
             <div id="canvas" style={{ height: '100%', width: '100%' }}></div>
-            <button id="save-button" onClick={exportDiagram}>
+            {/* Export Diagram Button */}
+            <button 
+                id="export-diagram-button" 
+                onClick={exportDiagram} 
+                title="Export BPMN Diagram"
+            >
                 Export Diagram
             </button>
 

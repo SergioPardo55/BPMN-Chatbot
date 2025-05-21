@@ -161,7 +161,10 @@ const Main =() =>{
                             </div>
                         )}
                         {/* Cancel button for prepared actions (when recentPrompt is set and not loading/not file uploading) */}
-                        {!loading && recentPrompt && !awaitingFileUploadForAction && (
+                        {!loading && !awaitingFileUploadForAction && 
+                            (recentPrompt === "Create template for process model" || 
+                             recentPrompt === "Create process model from description" || 
+                             recentPrompt === "Start modelling session from scratch") && (
                             <div className="prepared-action-cancel-section">
                                 <button onClick={cancelPreparedAction} className="cancel-prepared-action-btn">Cancel</button>
                             </div>

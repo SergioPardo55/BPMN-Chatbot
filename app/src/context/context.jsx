@@ -4,7 +4,52 @@ import runChat from "../config/gemini";
 export const Context = createContext();
 
 // Define the URL for the initial diagram
-const INITIAL_DIAGRAM_URL = 'https://cdn.statically.io/gh/bpmn-io/bpmn-js-examples/dfceecba/starter/diagram.bpmn';
+const INITIAL_DIAGRAM = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1x744zo" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.6.1">
+  <bpmn:collaboration id="Collaboration_1jxlwb5">
+    <bpmn:participant id="Participant_03x5hsm" processRef="Process_0p395vn" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_0p395vn" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_0y29k9c">
+      <bpmn:outgoing>Flow_0nnej0l</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1lzn5jj" sourceRef="Activity_14d3am1" targetRef="Event_1x9qbvn" />
+    <bpmn:sequenceFlow id="Flow_0nnej0l" sourceRef="StartEvent_0y29k9c" targetRef="Activity_14d3am1" />
+    <bpmn:endEvent id="Event_1x9qbvn">
+      <bpmn:incoming>Flow_1lzn5jj</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Activity_14d3am1" name="Task">
+      <bpmn:incoming>Flow_0nnej0l</bpmn:incoming>
+      <bpmn:outgoing>Flow_1lzn5jj</bpmn:outgoing>
+    </bpmn:task>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1jxlwb5">
+      <bpmndi:BPMNShape id="Participant_03x5hsm_di" bpmnElement="Participant_03x5hsm" isHorizontal="true">
+        <dc:Bounds x="156" y="80" width="924" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_0y29k9c">
+        <dc:Bounds x="232" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1x9qbvn_di" bpmnElement="Event_1x9qbvn">
+        <dc:Bounds x="982" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_14d3am1_di" bpmnElement="Activity_14d3am1">
+        <dc:Bounds x="570" y="160" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1lzn5jj_di" bpmnElement="Flow_1lzn5jj">
+        <di:waypoint x="670" y="200" />
+        <di:waypoint x="982" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nnej0l_di" bpmnElement="Flow_0nnej0l">
+        <di:waypoint x="268" y="200" />
+        <di:waypoint x="570" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+`;
 
 const XML_START_DELIMITER = "<BPMN_XML_START>";
 const XML_END_DELIMITER = "<BPMN_XML_END>";
@@ -25,21 +70,7 @@ const ContextProvider = (props) => {
 
     // Fetch initial diagram on mount
     useEffect(() => {
-        const fetchInitialDiagram = async () => {
-            try {
-                const response = await fetch(INITIAL_DIAGRAM_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const xml = await response.text();
-                setDiagramXML(xml); // Modeler.jsx will pick this up
-            } catch (err) {
-                console.error("Failed to load initial diagram:", err);
-                setResultData("Could not load the initial diagram. Please check the console.");
-                setShowResult(true);
-            }
-        };
-        fetchInitialDiagram();
+        setDiagramXML(INITIAL_DIAGRAM); // Set initial diagram XML
     }, []); // Empty dependency array ensures this runs once on mount
 
     useEffect(() => {
@@ -86,7 +117,7 @@ const ContextProvider = (props) => {
 
     const prepareCreateFromDescription = () => {
         setRecentPrompt("Create process model from description"); // Context for next input
-        setResultData("Please describe the process you want to model (e.g., 'An online book ordering process including payment and shipping notifications').");
+        setResultData("Please describe the process you want to model, be as specific as possible with all the steps involved and the decisions taken in it.");
         setShowResult(true);
         setLoading(false);
         setInput("");
@@ -94,7 +125,7 @@ const ContextProvider = (props) => {
 
     const prepareCreateTemplate = () => {
         setRecentPrompt("Start modelling session from scratch"); // Context for next input
-        setResultData("Please specify the use case for the process model template (e.g., 'A generic customer onboarding process').");
+        setResultData("Please describe the context of the process you want to model. Who are you modelling for? What is it that you want to prioritize in the process?");
         setShowResult(true);
         setLoading(false);
         setInput("");
