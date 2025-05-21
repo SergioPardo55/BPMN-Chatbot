@@ -6,14 +6,13 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import './Modeler.css';
 import customControlsModule from '../custom';
 import { Context } from '../../context/context'; // Corrected path for Context
+import { appianSmartServices, APPIAN_ICON_BASE_URL } from '../custom/appianServices'; // Import Appian services
 
 function BPMNModeler() {
     const bpmnModelerRef = useRef(null);
-    // const elementFactoryRef = useRef(null); // Not strictly needed if accessed via modelerRef
-    // const createRef = useRef(null); // Not strictly needed if accessed via modelerRef
     const [isCustomPanelVisible, setIsCustomPanelVisible] = useState(false);
 
-    const { diagramXML, reportRenderAttempt } = useContext(Context); // Consume diagramXML and reportRenderAttempt
+    const { diagramXML, reportRenderAttempt } = useContext(Context);
 
     // Effect for initializing and destroying the modeler instance
     useEffect(() => {
@@ -114,41 +113,66 @@ function BPMNModeler() {
         }
     };
 
-    // Functions to create shapes (to be called by buttons in the custom panel)
-    const handleCreateServiceTask = (event) => {
+    // Generalized function to create shapes for Appian Smart Services
+    const handleCreateShape = (service, event) => {
         const modelerInstance = bpmnModelerRef.current;
         if (modelerInstance) {
             const moddle = modelerInstance.get('moddle');
             const elementFactory = modelerInstance.get('elementFactory');
             const create = modelerInstance.get('create');
+            const modeling = modelerInstance.get('modeling'); // Get modeling for subprocess expansion
 
-            const businessObject = moddle.create('bpmn:Task', {
-                name: 'User Input Task',
-                'custom:customType': 'userInputTask',
-                'custom:customIconUrl': 'https://docs.appian.com/suite/help/24.3/images/Smart_Service_Icons/User_Input_Task.png'
-            });
+            const customProperties = {
+                name: service.name,
+                'custom:customType': service.customType,
+                'custom:customIconUrl': `${APPIAN_ICON_BASE_URL}${service.icon}`
+            };
 
-            const shape = elementFactory.createShape({ 
-                type: 'bpmn:Task', 
-                businessObject: businessObject 
-            });
+            let businessObjectProperties = { ...customProperties };
+
+            if (service.eventDefinitionType) {
+                const eventDefinition = moddle.create(service.eventDefinitionType);
+                businessObjectProperties.eventDefinitions = [eventDefinition];
+            }
             
-            create.start(event.nativeEvent || event, shape); // event.nativeEvent for React synthetic events
-        } else {
-            console.error('Modeler, Create or ElementFactory not initialized');
-        }
-    };
+            // For SubProcess, set isExpanded if defined
+            if (service.type === 'bpmn:SubProcess' && service.isExpanded !== undefined) {
+                // isExpanded is a DI property, not directly on businessObject for creation in this manner
+                // It's typically handled by modeling.createShape or by setting it after creation
+                // For now, we'll create it and then expand if necessary, though direct creation as expanded is preferred if API allows
+            }
 
-    const handleCreateWriteToDatabaseTask = (event) => {
-        const modelerInstance = bpmnModelerRef.current;
-        if (modelerInstance) {
-            const elementFactory = modelerInstance.get('elementFactory');
-            const create = modelerInstance.get('create');
-            const shape = elementFactory.createShape({ type: 'bpmn:ServiceTask' }); // Or bpmn:ServiceTask
-            // shape.businessObject.name = 'Write to Database'; // Optional: set default name
+
+            const businessObject = moddle.create(service.type, businessObjectProperties);
+            
+            const shapeProperties = { 
+                type: service.type, 
+                businessObject: businessObject 
+            };
+
+            // If it's a SubProcess and should be expanded, set appropriate dimensions
+            if (service.type === 'bpmn:SubProcess' && service.isExpanded) {
+                shapeProperties.isExpanded = true; // This might be used by elementFactory or create
+                // Default expanded size, can be adjusted
+                shapeProperties.width = 350; 
+                shapeProperties.height = 200;
+            }
+
+
+            const shape = elementFactory.createShape(shapeProperties);
+            
             create.start(event.nativeEvent || event, shape);
+
+            // If it was a subprocess that needed to be expanded and create.start doesn't handle it directly
+            // We might need to call modeling.updateProperties or a specific expand command if available
+            // For now, relying on elementFactory and create.start to handle `isExpanded` if possible.
+            // If not, this would be the place to add:
+            // if (service.type === 'bpmn:SubProcess' && service.isExpanded && shape.id) {
+            //     modeling.updateProperties(shape, { isExpanded: true });
+            // }
+
         } else {
-            console.error('Create or ElementFactory not initialized');
+            console.error('Modeler instance not initialized');
         }
     };
 
@@ -162,13 +186,21 @@ function BPMNModeler() {
             {/* Custom Tools Panel */}
             {isCustomPanelVisible && (
                 <div className="custom-tools-panel">
-                    <button title="User Input Task" onMouseDown={handleCreateServiceTask} className="custom-tool-button">
-                        <img src="https://docs.appian.com/suite/help/24.3/images/Smart_Service_Icons/User_Input_Task.png" alt="User Input Task" />
-                    </button>
-                    <button title="Write to DataStore Entity Smart Service" onMouseDown={handleCreateWriteToDatabaseTask} className="custom-tool-button bpmn-icon-data-store">
-                        {/* Write to DB (using data store icon) */}
-                    </button>
-                    {/* Add more custom tools here */}
+                    {appianSmartServices.map((service) => (
+                        <button 
+                            key={service.customType} 
+                            title={service.name} 
+                            onMouseDown={(event) => handleCreateShape(service, event)} 
+                            className="custom-tool-button"
+                        >
+                            <img 
+                                src={`${APPIAN_ICON_BASE_URL}${service.icon}`} 
+                                alt={service.name} 
+                                onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='inline'; }}
+                            />
+                            <span style={{display: 'none'}}>{service.name.substring(0,3)}</span> {/* Fallback text */}
+                        </button>
+                    ))}
                 </div>
             )}
         </div>

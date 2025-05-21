@@ -15,27 +15,41 @@ export default class CustomRenderer extends BaseRenderer {
   }
 
   canRender(element) {
-    // Only render tasks that have our customType 'userInputTask'
-    return element.type === 'bpmn:Task' && 
-           element.businessObject && 
-           element.businessObject.get('custom:customType') === 'userInputTask';
+    // Render if the element has customType and customIconUrl
+    return element.businessObject && 
+           element.businessObject.get('custom:customType') && 
+           element.businessObject.get('custom:customIconUrl');
   }
 
   drawShape(parentNode, element) {
-    // Draw the default task shape first
+    // Draw the default shape first (e.g., task, event, gateway)
     const shape = this.bpmnRenderer.drawShape(parentNode, element);
 
     const customIconUrl = element.businessObject.get('custom:customIconUrl');
 
+    // Check again, though canRender should have ensured this
     if (customIconUrl) {
       const iconSize = 20; // Desired icon size (width and height)
-      const padding = 5;   // Padding from the top-left corner of the task
+      const padding = 5;   // Padding from the top-left corner
+
+      // For gateways, icons might look better centered or scaled differently.
+      // For now, using a generic approach.
+      let xPosition = padding;
+      let yPosition = padding;
+
+      // Potentially adjust icon position based on element type for better aesthetics
+      // For example, center it in small elements like gateways or events
+      if (element.type.includes('Gateway') || element.type.includes('Event')) { // Simplified check for Gateway or Event
+        // Center icon for smaller elements like gateways and events
+        xPosition = (element.width - iconSize) / 2;
+        yPosition = (element.height - iconSize) / 2;
+      }
 
       const img = svgCreate('image');
       svgAttr(img, {
         href: customIconUrl,
-        x: padding,
-        y: padding,
+        x: xPosition,
+        y: yPosition,
         width: iconSize,
         height: iconSize
       });
