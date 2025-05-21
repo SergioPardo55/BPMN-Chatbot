@@ -7,23 +7,6 @@ import BPMNModeler from './components/BPMN/Modeler';
 
 const App = () => {
   console.log(BpmnJS);
-
-  //React.useEffect(() => {
-  //  const viewer = new BpmnJS({
-  //    container: '#container'
-  //  });
-
-    // viewer.importXML('/simple.bpmn').catch(err => {
-    //   console.error('Error importing BPMN diagram:', err);
-    // });
-
- //   return () => {
-  //    viewer.destroy();
-  //  };
-  //}, []);
-  // <div className="bpmn-section" id='container'>
-  //   {BpmnModelerComponent}
-  // </div>
   return (
     <div className="app-container">
       <div className="sidebar">
