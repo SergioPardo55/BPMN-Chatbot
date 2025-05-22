@@ -1,12 +1,6 @@
 import { Context } from "./AppContext"; // Updated import
 import { useState, useEffect, useRef, useCallback } from "react"; // Added useCallback
 import runChat from "../config/gemini";
-import BpmnModeler from 'bpmn-js/lib/Modeler';
-// import { männlichen } from 'bpmn-js-cli'; // Likely typo, should be moddle if used
-import AppianModdleDescriptor from '../components/custom/custom.json';
-import customPaletteModule from '../components/custom';
-import CustomRenderer from '../components/custom/CustomRenderer.js'; // Corrected path if necessary
-
 
 // Define the URL for the initial diagram
 const INITIAL_DIAGRAM = `<?xml version="1.0" encoding="UTF-8"?>
@@ -216,7 +210,7 @@ const ContextProvider = (props) => {
         setResultData("");
         setLoading(true);
         setShowResult(true);
-        // Instructions for the AI
+        // Logic to handle the prompt and response
         // HANDLING THE PROMPT
         // You may use maximum 2 variables to handle the prompt and the user input
         // If the state includeDiagramInPrompt is true then the query will be prompt + diagramXML

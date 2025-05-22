@@ -10,7 +10,7 @@ export default class CustomContextPad {
         this.autoPlace = injector.get('autoPlace', false);
       }
   
-      contextPad.registerProvider(this);
+      contextPad.registerProvider(this); 
     }
   
     getContextPadEntries(element) {
@@ -26,66 +26,86 @@ export default class CustomContextPad {
       appianSmartServices.forEach(item => {
         const iconUrl = APPIAN_ICON_BASE_URL + item.icon;
 
-        function appendAction(event, currentElement) { // Renamed element to currentElement to avoid conflict
-          const businessObjectAttrs = {
-            name: item.name,
-            'custom:customType': item.customType,
-            'custom:customIconUrl': iconUrl
-          };
+        function appendAction(event, currentElement) {
+          // 1. Create the main business object (e.g., ServiceTask)
+          const mainBo = elementFactory._moddle.create(item.type, { name: item.name });
 
+          // Add eventDefinitions if applicable
           if (item.eventDefinitionType) {
-            businessObjectAttrs.eventDefinitions = [elementFactory._moddle.create(item.eventDefinitionType)];
+            mainBo.eventDefinitions = [elementFactory._moddle.create(item.eventDefinitionType)];
           }
 
+          // 2. Create the AppianServiceData element
+          const appianData = elementFactory._moddle.create('custom:AppianServiceData', {
+            customType: item.customType,
+            customIconUrl: iconUrl
+          });
+
+          // 3. Get or create extensionElements for the mainBo
+          let extensionElements = mainBo.get('extensionElements');
+          if (!extensionElements) {
+            extensionElements = elementFactory._moddle.create('bpmn:ExtensionElements');
+            mainBo.extensionElements = extensionElements;
+          }
+
+          // 4. Add AppianServiceData to extensionElements values
+          if (!extensionElements.get('values')) {
+            extensionElements.set('values', []);
+          }
+          extensionElements.get('values').push(appianData);
+          appianData.$parent = extensionElements; // Set parent for serialization
+
+          // 5. Create the shape with the updated business object
           const shape = elementFactory.createShape({
             type: item.type,
-            businessObject: elementFactory._moddle.create(item.type, businessObjectAttrs),
-            ...(item.isExpanded && { isExpanded: true, width: 350, height: 200 }) // Example size for subprocess
+            businessObject: mainBo,
+            ...(item.isExpanded && { isExpanded: true, width: 350, height: 200 })
           });
           
-          // Ensure custom properties are set (sometimes direct BO creation needs a little help)
-          if (shape.businessObject) {
-            shape.businessObject.name = item.name; // Redundant if moddle.create worked, but safe
-            shape.businessObject.set('custom:customType', item.customType);
-            shape.businessObject.set('custom:customIconUrl', iconUrl);
-            if (item.eventDefinitionType && !shape.businessObject.eventDefinitions) {
-                 shape.businessObject.eventDefinitions = [elementFactory._moddle.create(item.eventDefinitionType)];
-            }
-          }
-
-
           if (autoPlace) {
             autoPlace.append(currentElement, shape);
           } else {
-            startAppendAction(event, currentElement, shape); // Pass shape to startAppendAction
+            startAppendAction(event, currentElement, shape);
           }
         }
         
-        function startAppendAction(event, currentElement, providedShape) { // Added currentElement, providedShape
+        function startAppendAction(event, currentElement, providedShape) {
           let shapeToCreate = providedShape;
-          if (!shapeToCreate) { // If not called from appendAction, create the shape
-            const businessObjectAttrs = {
-              name: item.name,
-              'custom:customType': item.customType,
-              'custom:customIconUrl': iconUrl
-            };
+          if (!shapeToCreate) {
+            // Create the main business object (e.g., ServiceTask)
+            const mainBo = elementFactory._moddle.create(item.type, { name: item.name });
+
+            // Add eventDefinitions if applicable
             if (item.eventDefinitionType) {
-              businessObjectAttrs.eventDefinitions = [elementFactory._moddle.create(item.eventDefinitionType)];
+              mainBo.eventDefinitions = [elementFactory._moddle.create(item.eventDefinitionType)];
             }
+
+            // Create the AppianServiceData element
+            const appianData = elementFactory._moddle.create('custom:AppianServiceData', {
+              customType: item.customType,
+              customIconUrl: iconUrl // iconUrl needs to be defined in this scope too
+            });
+
+            // Get or create extensionElements for the mainBo
+            let extensionElements = mainBo.get('extensionElements');
+            if (!extensionElements) {
+              extensionElements = elementFactory._moddle.create('bpmn:ExtensionElements');
+              mainBo.extensionElements = extensionElements;
+            }
+
+            // Add AppianServiceData to extensionElements values
+            if (!extensionElements.get('values')) {
+              extensionElements.set('values', []);
+            }
+            extensionElements.get('values').push(appianData);
+            appianData.$parent = extensionElements; // Set parent for serialization
+
+            // Create the shape with the updated business object
             shapeToCreate = elementFactory.createShape({
               type: item.type,
-              businessObject: elementFactory._moddle.create(item.type, businessObjectAttrs),
+              businessObject: mainBo,
               ...(item.isExpanded && { isExpanded: true, width: 350, height: 200 })
             });
-            // Ensure custom properties
-            if (shapeToCreate.businessObject) {
-                shapeToCreate.businessObject.name = item.name;
-                shapeToCreate.businessObject.set('custom:customType', item.customType);
-                shapeToCreate.businessObject.set('custom:customIconUrl', iconUrl);
-                if (item.eventDefinitionType && !shapeToCreate.businessObject.eventDefinitions) {
-                    shapeToCreate.businessObject.eventDefinitions = [elementFactory._moddle.create(item.eventDefinitionType)];
-                }
-            }
           }
           create.start(event, shapeToCreate, currentElement); 
         }
@@ -96,7 +116,7 @@ export default class CustomContextPad {
           imageUrl: iconUrl, // Use the Appian icon for the context pad button itself
           action: {
             click: appendAction,
-            dragstart: (event, currentElement) => startAppendAction(event, currentElement, null) // Ensure startAppendAction creates shape
+            dragstart: (event, currentElement) => startAppendAction(event, currentElement, null)
           }
         };
       });

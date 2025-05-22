@@ -7,10 +7,8 @@
   },
   "types": [
     {
-      "name": "CustomTask",
-      "extends": [
-        "bpmn:ServiceTask"
-      ],
+      "name": "AppianServiceData",
+      "superClass": [ "Element" ],
       "properties": [
         {
           "name": "customType",
@@ -25,6 +23,6 @@
       ]
     }
   ],
-  "emumerations": [],
+  "enumerations": [],
   "associations": []
 }
