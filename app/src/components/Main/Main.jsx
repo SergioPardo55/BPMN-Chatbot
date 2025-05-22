@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef } from "react"; // Added useRef
+import React, { useContext, useState, useRef } from "react";  useRef
 import './Main.css'
 import { assets } from "../../assets/assets";
 import { Context } from "../../context/AppContext"; // Updated import path
@@ -7,18 +7,21 @@ const Main =() =>{
 
         const {
             onSent,recentPrompt,showResult,loading,resultData,setInput,input,
-            prevPrompts, // ADDED
-            prevResults, // ADDED
+            prevPrompts, 
+            prevResults, 
             prepareStartModellingScratch, 
             prepareCreateFromDescription, 
             prepareCreateTemplate,
             prepareGenerateModel, 
-            prepareRecommendUpload, // ADDED
-            prepareAnalyzeProcessModel, // ADDED
+            prepareRecommendUpload, 
+            prepareAnalyzeProcessModel,
             cancelPreparedAction, 
-            toggleIncludeDiagram, 
+            prepareAppianQuery,
+            toggleIncludeDiagram,
+            toggleAppianQuery, 
             includeDiagramInPrompt, 
-            renderDiagram // ADDED
+            renderDiagram,
+            appianQuery
         } = useContext(Context);
         
         const [awaitingFileUploadForAction, setAwaitingFileUploadForAction] = useState(null); // This is the correct local state
@@ -38,8 +41,12 @@ const Main =() =>{
             prepareCreateTemplate();
         };
 
-        const handleGenerateModelClick = () => { // ADDED
+        const handleGenerateModelClick = () => { 
             prepareGenerateModel();
+        };
+
+        const handleAppianQueryClick = () => {
+            prepareAppianQuery();
         };
 
         const handleFileSelect = (event) => {
@@ -98,7 +105,7 @@ const Main =() =>{
             setAwaitingFileUploadForAction(null);
             setSelectedFile(null);
             setSelectedFileName("");
-            cancelPreparedAction(); // ADDED: Call cancelPreparedAction to reset context states
+            cancelPreparedAction();
         }
 
         const handleInputKeyDown = (event) => {
@@ -174,6 +181,10 @@ const Main =() =>{
                                     <p>Start modelling session from scratch</p>
                                     <img src={assets.code_icon} alt="Start modelling session from scratch" />
                                 </div>
+                                <div className="card" onClick={handleAppianQueryClick}> 
+                                    <p>Appian query</p>
+                                    <img src={assets.appian_logo} alt="Appian Query" />
+                                </div>
                             </div>
                         )}
                         {/* Display file upload UI if awaiting file for an action */}
@@ -239,6 +250,10 @@ const Main =() =>{
                                     <p>Start modelling session from scratch</p>
                                     <img src={assets.code_icon} alt="Start modelling session from scratch" />
                                 </div>
+                                <div className="card" onClick={handleAppianQueryClick}> 
+                                    <p>Appian query</p>
+                                    <img src={assets.appian_logo} alt="Appian Query" />
+                                </div>
                             </div>
                         )}
                     </>
@@ -255,6 +270,14 @@ const Main =() =>{
                             placeholder={(renderDiagram && (recentPrompt === "Generate process model" || recentPrompt === "Create template for process model" || recentPrompt === "Create process model from description" || recentPrompt === "Recommend next elements from file")) ? "Describe the diagram to generate..." : "Enter prompt here"} 
                         />
                         <div>
+                            {/* Appian Icon for initiating "Appian Query" or indicating an active Appian query mode */}
+                            <img 
+                                src={(appianQuery) ? assets.check_icon : assets.appian_logo} 
+                                alt="Appian Query / Appian Query active" 
+                                title={(appianQuery) ? "Appian Query is active." : "Appian Query (click)"}
+                                onClick={toggleAppianQuery} // This sets renderDiagram true and recentPrompt to "Generate process model"
+                                className={(appianQuery) ? 'active' : ''} 
+                            />
                             {/* Main Gear Icon for initiating "Generate process model" or indicating an active diagram generation mode */}
                             <img 
                                 src={(renderDiagram) ? assets.check_gear_icon : assets.gear_icon} 

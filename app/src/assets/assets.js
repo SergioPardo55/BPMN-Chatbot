@@ -15,6 +15,7 @@ import gemini_icon from './gemini_icon.png'
 import check_icon from './check.svg'
 import gear_icon from './gear.svg'
 import check_gear_icon from './check_gear.svg'
+import appian_logo from '/appian-seeklogo.svg'
 
 export const assets = {
     history_icon,
@@ -33,5 +34,6 @@ export const assets = {
     gemini_icon,
     check_icon,
     gear_icon,
-    check_gear_icon
+    check_gear_icon,
+    appian_logo
 }

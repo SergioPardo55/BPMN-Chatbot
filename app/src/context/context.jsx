@@ -65,15 +65,8 @@ const escapeHtml = (unsafe) => {
          .replace(/'/g, "&#039;");
 };
 
-// Helper function to apply custom formatting (bold, line breaks)
-// and ensure text is HTML-safe for dangerouslySetInnerHTML
 const formatAIResponseForHTML = (rawText) => {
     if (typeof rawText !== 'string') return String(rawText);
-
-    // 1. Handle bolding (**)
-    // Segments of the raw text are split by '**'.
-    // Odd-indexed segments (after splitting) are the content to be bolded.
-    // Each segment's content is HTML-escaped before being used.
     let newResponse = "";
     const responseArray = rawText.split('**');
     for (let i = 0; i < responseArray.length; i++) {
@@ -84,11 +77,6 @@ const formatAIResponseForHTML = (rawText) => {
             newResponse += "<b>" + segmentContent + "</b>";
         }
     }
-
-    // 2. Handle line breaks (* and \n)
-    // Replace standalone '*' characters with <br/>
-    // Replace newline characters '\n' with <br/>
-    // This is done on the string that has already been processed for bolding.
     let newResponse2 = newResponse.split("*").join("<br/>").split("\n").join("<br/>");
 
     return newResponse2;
@@ -105,10 +93,11 @@ const ContextProvider = (props) => {
     const [diagramXML, setDiagramXML] = useState(INITIAL_DIAGRAM); // Initialize with default diagram
     const [includeDiagramInPrompt, setIncludeDiagramInPrompt] = useState(false);
     const [renderDiagram, setRenderDiagram] = useState(false);
+    const [appianQuery, setAppianQuery] = useState(""); 
 
-    const [isModelerInitialized, setIsModelerInitialized] = useState(false); // ADDED: To track modeler initialization
-    const [renderAttempt, setRenderAttempt] = useState({ xml: null, status: null, error: null }); // ADDED: For render attempt status
-    const currentRenderPromiseResolver = useRef(null); // ADDED: For managing render promise
+    const [isModelerInitialized, setIsModelerInitialized] = useState(false); 
+    const [renderAttempt, setRenderAttempt] = useState({ xml: null, status: null, error: null }); 
+    const currentRenderPromiseResolver = useRef(null); 
 
 
     // Fetch initial diagram XML into state
@@ -133,10 +122,10 @@ const ContextProvider = (props) => {
         setRecentPrompt("");
         setInput("");
         setPrevPrompts([]);
-        setPrevResults([]); // ADDED: Clear previous AI results
+        setPrevResults([]);
         setShowResult(true); 
         setIncludeDiagramInPrompt(false); 
-        setRenderDiagram(false); // ADDED: Reset renderDiagram state
+        setRenderDiagram(false);
     }
 
     const prepareCreateTemplate = () => {
@@ -145,7 +134,7 @@ const ContextProvider = (props) => {
         setShowResult(true);
         setLoading(false);
         setInput(""); 
-        setRenderDiagram(true); // ADDED: Expect diagram for this action
+        setRenderDiagram(true);
     };
 
     const prepareCreateFromDescription = () => {
@@ -154,7 +143,7 @@ const ContextProvider = (props) => {
         setShowResult(true);
         setLoading(false);
         setInput("");
-        setRenderDiagram(true); // ADDED: Expect diagram for this action
+        setRenderDiagram(true);
     };
 
     const  prepareStartModellingScratch = () => { // This seems to be "Start modelling session from scratch" in Main.jsx cards
@@ -166,7 +155,7 @@ const ContextProvider = (props) => {
         // setRenderDiagram(true); // User prompt did not list this card for auto-renderDiagram
     };
 
-    const prepareAnalyzeProcessModel = () => { // ADDED function
+    const prepareAnalyzeProcessModel = () => {
         setRecentPrompt("Analyze process model");
         setResultData("Please upload a .bpmn file to analyze its content and get improvement suggestions.");
         setShowResult(true);
@@ -180,13 +169,22 @@ const ContextProvider = (props) => {
         // recentPrompt and resultData are not modified by this action directly.
     };
 
-    const prepareRecommendUpload = () => { // ADDED function
+    const prepareRecommendUpload = () => {
         setRecentPrompt("Recommend next elements from file");
         setResultData("Please upload a .bpmn file to get element recommendations.");
         setShowResult(true);
         setLoading(false);
         setInput("");
-        setRenderDiagram(true); // ADDED: Expect diagram for this action
+        setRenderDiagram(true);
+    };
+
+    const prepareAppianQuery = () => { 
+        setRecentPrompt("Appian Query");
+        setResultData("Please describe the Appian query you want to execute.");
+        setShowResult(true);
+        setLoading(false);
+        setInput("");
+        setAppianQuery(true); 
     };
 
     const cancelPreparedAction = () => {
@@ -196,11 +194,19 @@ const ContextProvider = (props) => {
         setInput(""); 
         setLoading(false); 
         setIncludeDiagramInPrompt(false); 
-        setRenderDiagram(false); // Ensure renderDiagram is reset
+        setRenderDiagram(false); 
+        setAppianQuery(false);
     };
 
-    const toggleIncludeDiagram = () => { // Added function
+    const toggleIncludeDiagram = () => {
         setIncludeDiagramInPrompt(prev => {
+            const newIncludeState = !prev;
+            return newIncludeState;
+        });
+    };
+
+    const toggleAppianQuery = () => {
+        setAppianQuery(prev => {
             const newIncludeState = !prev;
             return newIncludeState;
         });
@@ -243,25 +249,22 @@ const ContextProvider = (props) => {
         // Compose the prompt based on recentPrompt and state
         if (recentPrompt === "Create template for process model") {
             console.log("Create template for process model");
-            queryToSendToAI = `You will be given a rough idea of what a process should do and the goal of it.
+            queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a rough idea of what a process should do and the goal of it.
                                 For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping.
                                 You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${userInput}`;
         } else if (recentPrompt === "Create process model from description") {
             console.log("Create process model from description");
-            queryToSendToAI = `You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${userInput}`;
+            queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${userInput}`;
         } else if (recentPrompt === "Start modelling session from scratch") {
             console.log("Start modelling session from scratch");
             queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${userInput}`;
-        } else if (recentPrompt === "Generate process model") {
-            console.log("Generate process model");
-            queryToSendToAI = `Generate a BPMN 2.0 XML process model based on the following description. Ensure the XML is complete and renderable. ${includeDiagramInPrompt ? `\n\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
         } else if (recentPrompt === "Recommend next elements from file") {
             console.log("Recommend next elements from file");
-            queryToSendToAI = `Given the following BPMN XML, recommend the next elements to add and explain why. ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}\n\nUser's request: ${userInput}`;
+            queryToSendToAI = `<OUTPUT_MODEL_CODE> Given the following BPMN XML, recommend the next elements to add and explain why. ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}\n\nUser's request: ${userInput}`;
         } else if (includeDiagramInPrompt){
             console.log("Include diagram in prompt");
             // If included diagram, append it to the prompt
-            queryToSendToAI = `${userInput}\n ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}`;
+            queryToSendToAI = `<PROCESS_MODEL_CODE_INCLUDED> ${userInput}\n ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}`;
         } else {
             console.log("No recent prompt, using user input");
             // If no recent prompt, just use the user input
@@ -271,6 +274,10 @@ const ContextProvider = (props) => {
         // If renderDiagram is true, instruct the AI to output BPMN 2.0 XML code
         if (renderDiagram) {
             queryToSendToAI += `\n\nYou must output the BPMN 2.0 XML code for this query. Delimit the XML with <BPMN_XML_START> and <BPMN_XML_END>. Also provide an explanation of the model.`;
+        }
+
+        if (appianQuery) {
+            queryToSendToAI = `<APPIAN_QUERY> `+ queryToSendToAI;
         }
 
         let aiResponse = "";
@@ -421,6 +428,7 @@ const ContextProvider = (props) => {
         setIncludeDiagramInPrompt,
         renderDiagram, 
         setRenderDiagram, 
+        appianQuery,
         isModelerInitialized, 
         setIsModelerInitialized, 
         reportRenderAttempt,
@@ -431,8 +439,10 @@ const ContextProvider = (props) => {
         prepareAnalyzeProcessModel, // ADDED
         prepareGenerateModel,
         prepareRecommendUpload,
+        prepareAppianQuery,
         cancelPreparedAction,
-        toggleIncludeDiagram
+        toggleIncludeDiagram,
+        toggleAppianQuery
     };
 
     return <Context.Provider value={contextValue}>{props.children}</Context.Provider>;
