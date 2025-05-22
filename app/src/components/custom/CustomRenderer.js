@@ -14,33 +14,45 @@ export default class CustomRenderer extends BaseRenderer {
     this.bpmnRenderer = bpmnRenderer;
   }
 
+  _getCustomProperty(businessObject, propertyName) {
+    if (!businessObject) {
+      return undefined;
+    }
+
+    const extensionElements = businessObject.get('extensionElements');
+    if (extensionElements && extensionElements.values) {
+      const appianDataElement = extensionElements.values.find(
+        extEl => extEl.$type === 'custom:AppianServiceData'
+      );
+      if (appianDataElement) {
+        return appianDataElement[propertyName];
+      }
+    }
+    return undefined;
+  }
+
   canRender(element) {
-    // Render if the element has customType and customIconUrl
-    return element.businessObject && 
-           element.businessObject.get('custom:customType') && 
-           element.businessObject.get('custom:customIconUrl');
+    // Render if the element has customType and customIconUrl via AppianServiceData
+    const customType = this._getCustomProperty(element.businessObject, 'customType');
+    const customIconUrl = this._getCustomProperty(element.businessObject, 'customIconUrl');
+    return !!(customType && customIconUrl);
   }
 
   drawShape(parentNode, element) {
     // Draw the default shape first (e.g., task, event, gateway)
     const shape = this.bpmnRenderer.drawShape(parentNode, element);
 
-    const customIconUrl = element.businessObject.get('custom:customIconUrl');
+    const customIconUrl = this._getCustomProperty(element.businessObject, 'customIconUrl');
 
     // Check again, though canRender should have ensured this
     if (customIconUrl) {
       const iconSize = 20; // Desired icon size (width and height)
       const padding = 5;   // Padding from the top-left corner
 
-      // For gateways, icons might look better centered or scaled differently.
-      // For now, using a generic approach.
       let xPosition = padding;
       let yPosition = padding;
 
-      // Potentially adjust icon position based on element type for better aesthetics
-      // For example, center it in small elements like gateways or events
-      if (element.type.includes('Gateway') || element.type.includes('Event')) { // Simplified check for Gateway or Event
-        // Center icon for smaller elements like gateways and events
+      if (element.type.includes('Gateway') || element.type.includes('Event')) {
         xPosition = (element.width - iconSize) / 2;
         yPosition = (element.height - iconSize) / 2;
       }

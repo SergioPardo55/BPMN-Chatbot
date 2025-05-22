@@ -127,62 +127,53 @@ function BPMNModeler() {
     const handleCreateShape = (service, event) => {
         const modelerInstance = bpmnModelerRef.current;
         if (modelerInstance) {
-            const moddle = modelerInstance.get('moddle');
             const elementFactory = modelerInstance.get('elementFactory');
             const create = modelerInstance.get('create');
-            const modeling = modelerInstance.get('modeling'); // Get modeling for subprocess expansion
+            const moddle = modelerInstance.get('moddle');
 
-            const customProperties = {
-                name: service.name,
-                'custom:customType': service.customType,
-                'custom:customIconUrl': `${APPIAN_ICON_BASE_URL}${service.icon}`
-            };
+            const iconUrl = APPIAN_ICON_BASE_URL + service.icon;
 
-            let businessObjectProperties = { ...customProperties };
+            // 1. Create the main business object (e.g., ServiceTask)
+            const mainBo = moddle.create(service.type, { name: service.name });
 
+            // Add eventDefinitions if applicable
             if (service.eventDefinitionType) {
-                const eventDefinition = moddle.create(service.eventDefinitionType);
-                businessObjectProperties.eventDefinitions = [eventDefinition];
-            }
-            
-            // For SubProcess, set isExpanded if defined
-            if (service.type === 'bpmn:SubProcess' && service.isExpanded !== undefined) {
-                // isExpanded is a DI property, not directly on businessObject for creation in this manner
-                // It's typically handled by modeling.createShape or by setting it after creation
-                // For now, we'll create it and then expand if necessary, though direct creation as expanded is preferred if API allows
+                mainBo.eventDefinitions = [moddle.create(service.eventDefinitionType)];
             }
 
+            // 2. Create the AppianServiceData element
+            const appianData = moddle.create('custom:AppianServiceData', {
+                customType: service.customType,
+                customIconUrl: iconUrl
+            });
 
-            const businessObject = moddle.create(service.type, businessObjectProperties);
-            
-            const shapeProperties = { 
-                type: service.type, 
-                businessObject: businessObject 
-            };
-
-            // If it's a SubProcess and should be expanded, set appropriate dimensions
-            if (service.type === 'bpmn:SubProcess' && service.isExpanded) {
-                shapeProperties.isExpanded = true; // This might be used by elementFactory or create
-                // Default expanded size, can be adjusted
-                shapeProperties.width = 350; 
-                shapeProperties.height = 200;
+            // 3. Get or create extensionElements for the mainBo
+            let extensionElements = mainBo.get('extensionElements');
+            if (!extensionElements) {
+                extensionElements = moddle.create('bpmn:ExtensionElements');
+                mainBo.extensionElements = extensionElements;
             }
 
+            // 4. Add AppianServiceData to extensionElements values
+            if (!extensionElements.get('values')) {
+                extensionElements.set('values', []);
+            }
+            extensionElements.get('values').push(appianData);
+            appianData.$parent = extensionElements; // Set parent for serialization
 
-            const shape = elementFactory.createShape(shapeProperties);
+            // 5. Create the shape with the updated business object
+            const shape = elementFactory.createShape({
+                type: service.type,
+                businessObject: mainBo,
+                ...(service.isExpanded && { width: 350, height: 200 })
+            });
             
-            create.start(event.nativeEvent || event, shape);
-
-            // If it was a subprocess that needed to be expanded and create.start doesn't handle it directly
-            // We might need to call modeling.updateProperties or a specific expand command if available
-            // For now, relying on elementFactory and create.start to handle `isExpanded` if possible.
-            // If not, this would be the place to add:
-            // if (service.type === 'bpmn:SubProcess' && service.isExpanded && shape.id) {
-            //     modeling.updateProperties(shape, { isExpanded: true });
-            // }
+            if (event) {
+                create.start(event, shape);
+            }
 
         } else {
-            console.error('Modeler instance not initialized');
+            console.error("BPMN Modeler instance not available.");
         }
     };
 
