@@ -1,6 +1,12 @@
 import { Context } from "./AppContext"; // Updated import
 import { useState, useEffect, useRef, useCallback } from "react"; // Added useCallback
 import runChat from "../config/gemini";
+import BpmnModeler from 'bpmn-js/lib/Modeler';
+// import { männlichen } from 'bpmn-js-cli'; // Likely typo, should be moddle if used
+import AppianModdleDescriptor from '../components/custom/custom.json';
+import customPaletteModule from '../components/custom';
+import CustomRenderer from '../components/custom/CustomRenderer.js'; // Corrected path if necessary
+
 
 // Define the URL for the initial diagram
 const INITIAL_DIAGRAM = `<?xml version="1.0" encoding="UTF-8"?>
@@ -54,49 +60,82 @@ const XML_START_DELIMITER = "<BPMN_XML_START>";
 const XML_END_DELIMITER = "<BPMN_XML_END>";
 const MAX_RETRIES = 3;
 
+// Helper function to escape HTML special characters for literal display
+const escapeHtml = (unsafe) => {
+    if (typeof unsafe !== 'string') return String(unsafe); // Ensure string
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+};
+
+// Helper function to apply custom formatting (bold, line breaks)
+// and ensure text is HTML-safe for dangerouslySetInnerHTML
+const formatAIResponseForHTML = (rawText) => {
+    if (typeof rawText !== 'string') return String(rawText);
+
+    // 1. Handle bolding (**)
+    // Segments of the raw text are split by '**'.
+    // Odd-indexed segments (after splitting) are the content to be bolded.
+    // Each segment's content is HTML-escaped before being used.
+    let newResponse = "";
+    const responseArray = rawText.split('**');
+    for (let i = 0; i < responseArray.length; i++) {
+        const segmentContent = escapeHtml(responseArray[i]);
+        if (i === 0 || i % 2 !== 1) { // Even index or first segment (not bold)
+            newResponse += segmentContent;
+        } else { // Odd index (text to be bolded)
+            newResponse += "<b>" + segmentContent + "</b>";
+        }
+    }
+
+    // 2. Handle line breaks (* and \n)
+    // Replace standalone '*' characters with <br/>
+    // Replace newline characters '\n' with <br/>
+    // This is done on the string that has already been processed for bolding.
+    let newResponse2 = newResponse.split("*").join("<br/>").split("\n").join("<br/>");
+
+    return newResponse2;
+};
+
 const ContextProvider = (props) => {
     const [input, setInput] = useState("");
     const [recentPrompt, setRecentPrompt] = useState("");
     const [prevPrompts, setPrevPrompts] = useState([]);
-    const [prevResults, setPrevResults] = useState([]); // ADDED to store AI responses
-    const [showResult, setShowResult] = useState(true); // Initialize to true
+    const [prevResults, setPrevResults] = useState([]); // Stores formatted HTML responses
+    const [showResult, setShowResult] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [resultData, setResultData] = useState("Hi, welcome to Process Modeler Support! How can I help you today?"); // Initialize with greeting
-    const [diagramXML, setDiagramXML] = useState("");
-    const [includeDiagramInPrompt, setIncludeDiagramInPrompt] = useState(false); // Added state
-    const [renderDiagram, setRenderDiagram] = useState(false); // ADDED: State to control diagram rendering expectation
-    
-    // State for render attempt tracking
-    const [renderAttempt, setRenderAttempt] = useState({ xml: null, status: 'idle', error: null });
-    const currentRenderPromiseResolver = useRef(null);
+    const [resultData, setResultData] = useState("");
+    const [diagramXML, setDiagramXML] = useState(INITIAL_DIAGRAM); // Initialize with default diagram
+    const [includeDiagramInPrompt, setIncludeDiagramInPrompt] = useState(false);
+    const [renderDiagram, setRenderDiagram] = useState(false);
 
-    // Fetch initial diagram on mount
-    useEffect(() => {
-        setDiagramXML(INITIAL_DIAGRAM); // Set initial diagram XML
-    }, []); // Empty dependency array ensures this runs once on mount
+    const [isModelerInitialized, setIsModelerInitialized] = useState(false); // ADDED: To track modeler initialization
+    const [renderAttempt, setRenderAttempt] = useState({ xml: null, status: null, error: null }); // ADDED: For render attempt status
+    const currentRenderPromiseResolver = useRef(null); // ADDED: For managing render promise
 
+
+    // Fetch initial diagram XML into state
     useEffect(() => {
-        if (currentRenderPromiseResolver.current && renderAttempt.xml === currentRenderPromiseResolver.current.xmlToWaitFor) {
-            if (renderAttempt.status === 'success') {
-                currentRenderPromiseResolver.current.resolve();
-                currentRenderPromiseResolver.current = null;
-            } else if (renderAttempt.status === 'failure') {
-                currentRenderPromiseResolver.current.reject(renderAttempt.error);
-                currentRenderPromiseResolver.current = null;
+        setDiagramXML(INITIAL_DIAGRAM); 
+    }, []);  
+        useEffect(() => {
+            if (currentRenderPromiseResolver.current && renderAttempt.xml === currentRenderPromiseResolver.current.xmlToWaitFor) {
+                if (renderAttempt.status === 'success') {
+                    currentRenderPromiseResolver.current.resolve(renderAttempt);
+                } else if (renderAttempt.status === 'error') {
+                    currentRenderPromiseResolver.current.reject(renderAttempt); // Reject with the attempt object
+                }
+                currentRenderPromiseResolver.current = null; // Clear the resolver
             }
-        }
-    }, [renderAttempt, currentRenderPromiseResolver]); // Corrected dependency array for the promise resolver effect
-
-    const delayPara = (index, nextWord) => {
-        setTimeout(function () {
-            setResultData(prev => prev + nextWord);
-        }, 75 * index)
-    }
-
+        }, [renderAttempt]); // Corrected dependency array for the promise resolver effect
+    
     const newChat = () => {
-        console.log("newChat function called"); // Added console.log for debugging
-        setLoading(false)
-        setResultData("Hi, welcome to Process Modeler Support! How can I help you today?");
+        console.log("newChat function called");
+        setLoading(false);
+        setShowResult(false);
         setRecentPrompt("");
         setInput("");
         setPrevPrompts([]);
@@ -133,6 +172,14 @@ const ContextProvider = (props) => {
         // setRenderDiagram(true); // User prompt did not list this card for auto-renderDiagram
     };
 
+    const prepareAnalyzeProcessModel = () => { // ADDED function
+        setRecentPrompt("Analyze process model");
+        setResultData("Please upload a .bpmn file to analyze its content and get improvement suggestions.");
+        setShowResult(true);
+        setLoading(false);
+        setInput("");
+    };
+
     const prepareGenerateModel = () => { 
         setRenderDiagram(prevRenderDiagram => !prevRenderDiagram);
         // Only toggle renderDiagram state. No other state changes here.
@@ -161,215 +208,200 @@ const ContextProvider = (props) => {
     const toggleIncludeDiagram = () => { // Added function
         setIncludeDiagramInPrompt(prev => {
             const newIncludeState = !prev;
-            if (newIncludeState) { // Log only when activating (changing to true)
-                console.log("Current Diagram XML:", diagramXML);
-            }
             return newIncludeState;
         });
     };
 
-    const onSent = async (payload) => { 
+    const onSent = async (prompt) => {
         setResultData("");
         setLoading(true);
-        setShowResult(true); // Ensure chat view is active
-        
-        const isRenderExpectedThisTurn = renderDiagram; // Capture renderDiagram state at the beginning of the call
-        let queryToSendToAI;
-        let userFacingDisplayForRecentPrompt;
-        let originalUserQueryForRetry;
-        let wasDiagramIncludedInThisPrompt = false;
+        setShowResult(true);
+        // Instructions for the AI
+        // HANDLING THE PROMPT
+        // You may use maximum 2 variables to handle the prompt and the user input
+        // If the state includeDiagramInPrompt is true then the query will be prompt + diagramXML
+        // If the state renderDiagram is true then the query will be prompt + Instructions for including the diagram: You must output the BPMN 2.0 XML code for this query.
+        // All of this logic must be added again to give more specific prompts
+        // if (recentPrompt === "Create template for process model") {
+        //         queryToSendToAI = `You will be given a rough idea of what a process should do and the goal of it. 
+        //         For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping. 
+        //         You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's specific request for this template: ` : ''}${userInput}`;
+        //     } else if (recentPrompt === "Create process model from description") {
+        //         queryToSendToAI = `You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
+        //     } else if (recentPrompt === "Start modelling session from scratch") {
+        //         queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's initial thoughts: ` : ''}${userInput}`;
+        //     } else if (recentPrompt === "Generate process model") { // ADDED condition
+        //         queryToSendToAI = `Generate a BPMN 2.0 XML process model based on the following description. Ensure the XML is complete and renderable. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
+        //     }
+        // If none of this is true then use the user prompt as is
 
-        if (typeof payload === 'string') {
-            const userInput = payload;
-            originalUserQueryForRetry = userInput;
-            userFacingDisplayForRecentPrompt = userInput; 
+        // HANDLING THE RESPONSE
+        // If the state renderDiagram is true then the AI must output the BPMN 2.0 XML code for the diagram
+        // There are 3 cases here:
+        // 1. The AI outputs the XML code and it is valid, then we import the XML code into the modeler
+        // 2. The AI outputs the XML code and it is invalid, then we send the displayed error to the AI and ask it to correct the XML code and output it again. The instruction to the AI is: "The model is incorrect: {Error} Please correct the model and don't forget to add the explanation, don't apologize, just answer as if nothing had happened"
+        // 3. The AI outputs an explanation of the model and not the XML code, then we ask it to output the XML code and add the explanation of the model. The instruction to the AI is: "The model is missing or is not output with the requeste format. Please add the model and don't forget to add the explanation, don't apologize, just answer as if nothing had happened" 
+        // If the state renderDiagram is false but we find the XML flags (<BPMN_XML_START>,</BPMN_XML_END>) in the response then we display the XML code in the chat and add the rest of the response as a text response
+        // If the state renderDiagram is false and no XML flags (<BPMN_XML_START>,</BPMN_XML_END>) are found in the response then the response is just a text response from the AI and we display it in the chat
+        let userInput = prompt;
+        let queryToSendToAI = userInput;
 
-            if (includeDiagramInPrompt) {
-                queryToSendToAI = `Current BPMN Diagram XML:\\n<BPMN_XML_START>\\n${diagramXML}\\n</BPMN_XML_END>\\n\\nUser Query: ${userInput}`;
-                userFacingDisplayForRecentPrompt = `${userInput} [Model included]`;
-                wasDiagramIncludedInThisPrompt = true;
-            } else {
-                queryToSendToAI = userInput;
-            }
-
-            // Prepend special instruction if rendering is expected for this turn
-            if (isRenderExpectedThisTurn) {
-                queryToSendToAI = `You must output the BPMN 2.0 XML code for this query. ${queryToSendToAI}`;
-            }
-            
-            if (recentPrompt === "Create template for process model") {
-                queryToSendToAI = `You will be given a rough idea of what a process should do and the goal of it. 
-                For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping. 
-                You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's specific request for this template: ` : ''}${userInput}`;
-            } else if (recentPrompt === "Create process model from description") {
-                queryToSendToAI = `You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
-            } else if (recentPrompt === "Start modelling session from scratch") {
-                queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's initial thoughts: ` : ''}${userInput}`;
-            } else if (recentPrompt === "Generate process model") { // ADDED condition
-                queryToSendToAI = `Generate a BPMN 2.0 XML process model based on the following description. Ensure the XML is complete and renderable. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
-            }
-            setPrevPrompts(prev => [...prev, userFacingDisplayForRecentPrompt]); 
-            setInput(""); 
-        } else if (typeof payload === 'object' && payload.queryForAI && payload.userFacingPrompt) {
-            queryToSendToAI = payload.queryForAI;
-            userFacingDisplayForRecentPrompt = payload.userFacingPrompt;
-            originalUserQueryForRetry = payload.userFacingPrompt; 
-
-            if (includeDiagramInPrompt) { 
-                queryToSendToAI = `Current BPMN Diagram XML:\\n<BPMN_XML_START>\\n${diagramXML}\\n</BPMN_XML_END>\\n\\n${payload.queryForAI}`;
-                userFacingDisplayForRecentPrompt = `${payload.userFacingPrompt} [Model included]`;
-                wasDiagramIncludedInThisPrompt = true;
-            }
-            // Prepend special instruction if rendering is expected for this turn (for object payload too)
-            if (isRenderExpectedThisTurn) {
-                queryToSendToAI = `You must output the BPMN 2.0 XML code for this query. ${queryToSendToAI}`;
-            }
-            // ADDED: Logic for file upload actions that should generate XML
-            if (awaitingFileUploadForAction === 'recommend') { 
-                // queryToSendToAI is already set from processUploadedFile in Main.jsx
-                // and it should already be a request for XML.
-            }
-
-            setPrevPrompts(prev => [...prev, userFacingDisplayForRecentPrompt]); 
+        // Compose the prompt based on recentPrompt and state
+        if (recentPrompt === "Create template for process model") {
+            console.log("Create template for process model");
+            queryToSendToAI = `You will be given a rough idea of what a process should do and the goal of it.
+                                For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping.
+                                You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${userInput}`;
+        } else if (recentPrompt === "Create process model from description") {
+            console.log("Create process model from description");
+            queryToSendToAI = `You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${userInput}`;
+        } else if (recentPrompt === "Start modelling session from scratch") {
+            console.log("Start modelling session from scratch");
+            queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${userInput}`;
+        } else if (recentPrompt === "Generate process model") {
+            console.log("Generate process model");
+            queryToSendToAI = `Generate a BPMN 2.0 XML process model based on the following description. Ensure the XML is complete and renderable. ${includeDiagramInPrompt ? `\n\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
+        } else if (recentPrompt === "Recommend next elements from file") {
+            console.log("Recommend next elements from file");
+            queryToSendToAI = `Given the following BPMN XML, recommend the next elements to add and explain why. ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}\n\nUser's request: ${userInput}`;
+        } else if (includeDiagramInPrompt){
+            console.log("Include diagram in prompt");
+            // If included diagram, append it to the prompt
+            queryToSendToAI = `${userInput}\n ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}`;
         } else {
-            console.error("Invalid payload for onSent:", payload);
+            console.log("No recent prompt, using user input");
+            // If no recent prompt, just use the user input
+            queryToSendToAI = userInput;
+        }
+
+        // If renderDiagram is true, instruct the AI to output BPMN 2.0 XML code
+        if (renderDiagram) {
+            queryToSendToAI += `\n\nYou must output the BPMN 2.0 XML code for this query. Delimit the XML with <BPMN_XML_START> and <BPMN_XML_END>. Also provide an explanation of the model.`;
+        }
+
+        let aiResponse = "";
+        let retries = 0;
+        let xmlValid = false;
+        let lastXmlError = "";
+
+        while (retries < MAX_RETRIES && !xmlValid) {
+            try {
+            aiResponse = await runChat(queryToSendToAI);
+            // If renderDiagram is true, expect XML in response
+            if (renderDiagram) {
+                const xml = extractBpmnXml(aiResponse);
+                if (xml) {
+                    console.log("XML found in response");
+                // Try to import XML into modeler (simulate validation)
+                try {
+                    // If you have a modeler instance, validate here. For now, just check if it's non-empty.
+                    if (xml.trim().length > 0) {
+                    setDiagramXML(xml);
+                    xmlValid = true;
+                    setPrevPrompts(prev => [...prev, userInput]);
+                    const cleanResponse = formatAIResponseForHTML(extractNonBpmnXml(aiResponse));
+                    setPrevResults(prev => [...prev, cleanResponse]);
+                    setLoading(false);
+                    setShowResult(true);
+
+                    // Update the resultData with the cleaned response
+                    setResultData(cleanResponse);
+                    break;
+                    } else {
+                    throw new Error("XML is empty.");
+                    }
+                } catch (err) {
+                    lastXmlError = err.message || String(err);
+                    // Ask AI to correct the XML
+                    queryToSendToAI = `The model is incorrect: ${lastXmlError}. Please correct the model and don't forget to add the explanation, don't apologize, just answer as if nothing had happened.\n\n${queryToSendToAI}`;
+                    retries++;
+                }
+                } else {
+                // No XML found, ask AI to add it
+                queryToSendToAI = `The model is missing or is not output with the requested format. Please add the model and don't forget to add the explanation, don't apologize, just answer as if nothing had happened.\n\n${queryToSendToAI}`;
+                retries++;
+                }
+            } else {
+                // Not rendering diagram, but check if XML is present
+                const xml = extractBpmnXml(aiResponse);
+                if (xml) {
+                setDiagramXML(xml);
+                setPrevPrompts(prev => [...prev, userInput]);
+                const cleanResponse = formatAIResponseForHTML(extractNonBpmnXml(aiResponse));
+                setPrevResults(prev => [...prev, cleanResponse]);
+                setLoading(false);
+                setShowResult(true);
+
+                // Update the resultData with the cleaned response
+                setResultData(cleanResponse);
+                break;
+                } else {
+                // Just a text response
+                setPrevPrompts(prev => [...prev, userInput]);
+                setPrevResults(prev => [...prev, aiResponse]);
+                setLoading(false);
+                setShowResult(true);
+                setResultData(formatAIResponseForHTML(aiResponse));
+                break;
+                }
+            }
+            } catch (err) {
+            lastXmlError = err.message || String(err);
             setLoading(false);
-            setResultData("An error occurred while sending your request.");
             setShowResult(true);
+            setResultData(`An error occurred: ${lastXmlError}`);
+            break;
+            }
+        }
+
+        if (!xmlValid && renderDiagram && retries >= MAX_RETRIES) {
+            setLoading(false);
+            setShowResult(true);
+            setResultData("Failed to generate a valid BPMN XML after several attempts. Please try again or refine your prompt.");
+        }
+        setRecentPrompt(userInput);
+        setInput("");
+        setIncludeDiagramInPrompt(false);
+        setRenderDiagram(false);
+    }
+
+    const delayPara = async (fullStr) => {
+        let newResultDataAccumulator = "";
+        if (typeof fullStr !== 'string') {
+            console.warn("delayPara received non-string input:", fullStr);
+            setResultData(String(fullStr)); 
             return;
         }
-
-        setRecentPrompt(userFacingDisplayForRecentPrompt); 
-
-        if (wasDiagramIncludedInThisPrompt) {
-            console.log("Query sent to AI (with diagram):", queryToSendToAI);
+        for (let i = 0; i < fullStr.length; i++) {
+            newResultDataAccumulator += fullStr[i];
+            setResultData(newResultDataAccumulator);
+            await new Promise(resolve => setTimeout(resolve, 1)); 
         }
-
-        let currentQueryForThisAttempt = queryToSendToAI; 
-        let lastError = null;
-        let successfulRender = false;
-        let finalExplanation = "Processing your request..."; // Default message
-        let xmlPart = ""; // Keep xmlPart accessible
-
-        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-            // Update resultData for immediate feedback about the attempt
-            let attemptMessage = `Attempt ${attempt + 1}/${MAX_RETRIES}: Generating response...`;
-            if (lastError) {
-                attemptMessage += `\nPrevious error: ${lastError.message}. Retrying...`;
-            }
-            setResultData(attemptMessage); // Show attempt status
-
-            const responseText = await runChat(currentQueryForThisAttempt);
-            lastError = null; 
-
-            if (responseText) {
-                const startIndex = responseText.indexOf(XML_START_DELIMITER);
-                const endIndex = responseText.indexOf(XML_END_DELIMITER);
-                let explanationPartFromAI = "";
-                // xmlPart = ""; // Reset xmlPart for each attempt inside the loop
-
-                if (startIndex !== -1 && endIndex !== -1 && startIndex < endIndex) { // Delimiters found
-                    xmlPart = responseText.substring(startIndex + XML_START_DELIMITER.length, endIndex).trim();
-                    explanationPartFromAI = responseText.substring(0, startIndex).trim();
-                    const postXmlText = responseText.substring(endIndex + XML_END_DELIMITER.length).trim();
-                    if (postXmlText) explanationPartFromAI = (explanationPartFromAI + "\n" + postXmlText).trim();
-                    
-                    finalExplanation = explanationPartFromAI || "Diagram generated.";
-
-                    // Conditional rendering logic based on isRenderExpectedThisTurn and if xmlPart has content
-                    if (xmlPart || isRenderExpectedThisTurn) {
-                        setResultData(prev => `${prev.split('\\n')[0]}\\nAttempt ${attempt + 1}/${MAX_RETRIES}: Rendering diagram...`);
-                        
-                        const renderPromise = new Promise((resolve, reject) => {
-                            currentRenderPromiseResolver.current = { resolve, reject, xmlToWaitFor: xmlPart };
-                        });
-
-                        setDiagramXML(xmlPart); 
-
-                        try {
-                            await renderPromise;
-                            successfulRender = true;
-                            break; 
-                        } catch (renderErr) {
-                            lastError = renderErr instanceof Error ? renderErr : new Error(String(renderErr));
-                            currentQueryForThisAttempt = `The previous BPMN XML attempt failed to render with the error: \\"${lastError.message}\\". The original query was: \\"${originalUserQueryForRetry}\\". Faulty XML was: \\n${xmlPart}\\nPlease provide a corrected BPMN XML and explanation, ensuring the XML is valid and complete.`;
-                            finalExplanation = explanationPartFromAI; // Keep explanation from this attempt
-                            successfulRender = false; // Ensure this is false if render fails
-                        }
-                    } else if (!xmlPart && isRenderExpectedThisTurn) { // XML expected, delimiters found, but no XML content
-                        finalExplanation = explanationPartFromAI || "Received response with XML delimiters but no XML content.";
-                        lastError = new Error("XML content was empty between delimiters.");
-                        currentQueryForThisAttempt = `The response had XML delimiters but no XML content. Original query: \\"${originalUserQueryForRetry}\\". Please provide a valid BPMN XML with explanation.`;
-                        successfulRender = false;
-                    } else { // XML not expected OR XML present but not expected (treat as text response)
-                        // If XML is present but not expected, finalExplanation already has it.
-                        // If XML is not present and not expected, finalExplanation is the text.
-                        successfulRender = true; // Treat as successful text response
-                        break; // Exit loop as no rendering is attempted/needed or it's just text
-                    }
-                } else { // No XML delimiters
-                    xmlPart = ""; // Ensure xmlPart is empty
-                    finalExplanation = responseText; 
-                    
-                    if (isRenderExpectedThisTurn) { // XML was expected, but no delimiters found
-                        lastError = new Error("AI response did not contain the expected BPMN XML delimiters for a diagram generation task.");
-                        currentQueryForThisAttempt = `The AI response did not include BPMN XML between <BPMN_XML_START> and <BPMN_XML_END> for a task that requires it. Original query: \\"${originalUserQueryForRetry}\\". Please include the XML in the correct format.`;
-                        successfulRender = false;
-                    } else {
-                        // No XML expected, and no XML found - successful text response
-                        successfulRender = true; 
-                        break; 
-                    }
-                }
-            } else { // Empty response from AI
-                xmlPart = ""; // Ensure xmlPart is empty
-                finalExplanation = "Received an empty response from the AI.";
-                lastError = new Error("Empty response from AI.");
-                currentQueryForThisAttempt = `Received an empty response. Original query: \\"${originalUserQueryForRetry}\\". Please try again.`;
-            }
-             if (successfulRender) break; // Exit loop if diagram rendered successfully
-        } 
-
-        setLoading(false);
-        setIncludeDiagramInPrompt(false); 
-        setRenderDiagram(false); // ADDED: Reset renderDiagram state after onSent completes
-
-        let displayMessage = finalExplanation;
-        if (!successfulRender && lastError) { // If rendering failed or was expected but not provided properly
-            displayMessage = `Failed to generate or render the diagram after ${MAX_RETRIES} attempts. Last error: ${lastError.message}`;
-            if (finalExplanation && finalExplanation !== "Diagram generated." && finalExplanation !== "Processing your request..." && !finalExplanation.startsWith("Attempt ")) {
-                 displayMessage += `\\n\\nLast explanation from AI:\\n${finalExplanation}`;
-            }
-        } else if (isRenderExpectedThisTurn && !xmlPart && !lastError) { // Expected XML, but loop finished without error and no XML (e.g. AI never provided tags)
-             displayMessage = `The AI did not provide a diagram after ${MAX_RETRIES} attempts.`;
-             if (finalExplanation && finalExplanation !== "Diagram generated." && finalExplanation !== "Processing your request..." && !finalExplanation.startsWith("Attempt ")) {
-                 displayMessage += `\\n\\nLast response from AI:\\n${finalExplanation}`;
-            }
-        }
-        // If successfulRender is true, displayMessage is already finalExplanation (either rendered XML's explanation or text response)
-
-        setPrevResults(prev => [...prev, displayMessage]); // ADDED: Store final AI response for history
-
-        setResultData(""); // Clear for streaming effect
-        if (displayMessage) {
-            let responseArray = displayMessage.split('**');
-            let newResponse = "";
-            for (let i = 0; i < responseArray.length; i++) {
-                if (i === 0 || i % 2 !== 1) {
-                    newResponse += responseArray[i];
-                } else {
-                    newResponse += "<b>" + responseArray[i] + "</b>";
-                }
-            }
-            let newResponse2 = newResponse.split("*").join("</br>").split("\n").join("</br>");
-            let newResponseArray = newResponse2.split(" ");
-            for (let i = 0; i < newResponseArray.length; i++) {
-                const nextWord = newResponseArray[i];
-                delayPara(i, nextWord + " ");
-            }
-        }
-        setShowResult(true); 
     };
+
+    const extractBpmnXml = (aiResponse) => {
+        const start = aiResponse.indexOf(XML_START_DELIMITER);
+        const end = aiResponse.indexOf(XML_END_DELIMITER);
+
+        if (start !== -1 && end !== -1 && start < end) {
+            return aiResponse.substring(start + XML_START_DELIMITER.length, end).trim();
+        }
+        return null;
+    };
+
+    const extractNonBpmnXml = (aiResponse) => {
+        const start = aiResponse.indexOf(XML_START_DELIMITER);
+        const end = aiResponse.indexOf(XML_END_DELIMITER);
+
+        if (start !== -1 && end !== -1 && start < end) {
+            // Everything before the start delimiter + everything after the end delimiter
+            const before = aiResponse.substring(0, start);
+            const after = aiResponse.substring(end + XML_END_DELIMITER.length);
+            return (before + after).trim();
+        }
+        return aiResponse;
+    };
+    
 
     const reportRenderAttempt = useCallback((result) => { // result: { xml, status, error }
         setRenderAttempt(result);
@@ -378,7 +410,8 @@ const ContextProvider = (props) => {
     const contextValue = {
         prevPrompts,
         setPrevPrompts,
-        prevResults, // ADDED
+        prevResults, 
+        setPrevResults, 
         onSent,
         setRecentPrompt,
         recentPrompt,
@@ -389,24 +422,26 @@ const ContextProvider = (props) => {
         setInput,
         newChat,
         diagramXML,
-        setDiagramXML, 
+        setDiagramXML,
+        includeDiagramInPrompt,
+        setIncludeDiagramInPrompt,
+        renderDiagram, 
+        setRenderDiagram, 
+        isModelerInitialized, 
+        setIsModelerInitialized, 
         reportRenderAttempt,
+        // Add the prepare functions and others
+        prepareCreateTemplate,
+        prepareCreateFromDescription,
         prepareStartModellingScratch,
-        prepareCreateFromDescription, 
-        prepareCreateTemplate, 
-        prepareGenerateModel, 
-        prepareRecommendUpload, // ADDED
+        prepareAnalyzeProcessModel, // ADDED
+        prepareGenerateModel,
+        prepareRecommendUpload,
         cancelPreparedAction,
-        includeDiagramInPrompt, 
-        toggleIncludeDiagram, // Added
-        renderDiagram // ADDED
-    }
+        toggleIncludeDiagram
+    };
 
-    return (
-        <Context.Provider value={contextValue}>
-            {props.children}
-        </Context.Provider>
-    )
-}
+    return <Context.Provider value={contextValue}>{props.children}</Context.Provider>;
+};
 
 export default ContextProvider;

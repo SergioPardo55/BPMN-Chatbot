@@ -14,6 +14,7 @@ const Main =() =>{
             prepareCreateTemplate,
             prepareGenerateModel, 
             prepareRecommendUpload, // ADDED
+            prepareAnalyzeProcessModel, // ADDED
             cancelPreparedAction, 
             toggleIncludeDiagram, 
             includeDiagramInPrompt, 
@@ -116,26 +117,22 @@ const Main =() =>{
                 {showResult ? (
                     <div className="result">
                         {/* Display previous prompts and results */}
-                        {prevPrompts.map((prompt, index) => (
+                        {prevPrompts.map((prompt, index, arr) => (
                             <React.Fragment key={index}>
                                 <div className="result-title">
                                     <img src={assets.user_icon} alt="" />
                                     <p>{prompt}</p>
                                 </div>
                                 <div className="result-data">
-                                    <img src={assets.gemini_icon} alt="" />
-                                    <p dangerouslySetInnerHTML={{ __html: prevResults[index] }}></p>
+                                    {loading?(<img src={assets.gemini_icon} alt="" />): (index < arr.length - 1 && (
+                                        <img src={assets.gemini_icon} alt="" />
+                                    )) }
+                                    <p dangerouslySetInnerHTML={{ __html: prevResults.slice(0, -1)[index] }}></p>
                                 </div>
                             </React.Fragment>
                         ))}
 
                         {/* Display current prompt and result/loader */}
-                        {recentPrompt && (
-                            <div className="result-title">
-                                <img src={assets.user_icon} alt="" />
-                                <p>{recentPrompt}</p>
-                            </div>
-                        )}
                         <div className="result-data">
                             <img src={assets.gemini_icon} alt="" />
                             {loading ? (
@@ -149,13 +146,16 @@ const Main =() =>{
                             )}
                         </div>
                         {/* Display option cards if not loading, no recent prompt, and not awaiting file upload */}
-                        {!loading && !recentPrompt && !awaitingFileUploadForAction && (
+                        {!loading && !recentPrompt && !awaitingFileUploadForAction && prevPrompts.length === 0 && (
                             <div className="cards initial-options"> 
                                 <div className="card" onClick={handleCreateTemplateClick}>
                                     <p>Create template for process model</p>
                                     <img src={assets.bulb_icon} alt="Start fresh" />
                                 </div>
-                                <div className="card" onClick={() => setAwaitingFileUploadForAction('analyze')}>
+                                <div className="card" onClick={() => {
+                                    setAwaitingFileUploadForAction('analyze');
+                                    prepareAnalyzeProcessModel(); // UPDATED
+                                }}>
                                     <p>Analyze process model</p>
                                     <img src={assets.compass_icon} alt="Analyze" />
                                 </div>
@@ -198,12 +198,8 @@ const Main =() =>{
                                 <button onClick={cancelFileUpload} className="cancel-upload-btn">Cancel</button>
                             </div>
                         )}
-                        {/* Cancel button for prepared actions (when recentPrompt is set and not loading/not file uploading) */}
-                        {!loading && !awaitingFileUploadForAction && 
-                            (recentPrompt === "Create template for process model" || 
-                             recentPrompt === "Create process model from description" || 
-                             recentPrompt === "Start modelling session from scratch" ||
-                             recentPrompt === "Generate process model") && ( // ADDED "Generate process model"
+                        {/* Cancel button for prepared actions (when recentPrompt is set and no input has been sent yet) */}
+                        {!loading && !awaitingFileUploadForAction && prevPrompts.length === 0 && recentPrompt && (
                             <div className="prepared-action-cancel-section">
                                 <button onClick={cancelPreparedAction} className="cancel-prepared-action-btn">Cancel</button>
                             </div>
@@ -221,7 +217,10 @@ const Main =() =>{
                                     <p>Create template for process model</p>
                                     <img src={assets.bulb_icon} alt="Start fresh" />
                                 </div>
-                                <div className="card" onClick={() => setAwaitingFileUploadForAction('analyze')}>
+                                <div className="card" onClick={() => {
+                                    setAwaitingFileUploadForAction('analyze');
+                                    prepareAnalyzeProcessModel(); // UPDATED
+                                }}>
                                     <p>Analyze process model</p>
                                     <img src={assets.compass_icon} alt="Analyze" />
                                 </div>

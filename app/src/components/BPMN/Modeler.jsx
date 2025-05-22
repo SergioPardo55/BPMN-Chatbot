@@ -48,58 +48,57 @@ function BPMNModeler() {
     useEffect(() => {
         const modeler = bpmnModelerRef.current;
         // Ensure reportRenderAttempt is defined before proceeding
-        if (!modeler || diagramXML === null || diagramXML === undefined || !reportRenderAttempt) { // Check for null or undefined explicitly
-            // Consider clearing the diagram if diagramXML is explicitly set to empty or null
-            // if (modeler && (diagramXML === null || diagramXML === '')) {
-            // modeler.clear(); // Be cautious with clear(), might need re-init for some modules
-            // reportRenderAttempt({ xml: diagramXML, status: 'success', error: null }); // Report success for empty/cleared state
-            // }
-            return;
-        }
-        if (diagramXML === "") { // If diagramXML is an empty string, treat as a successful clear or initial empty state
-            if (modeler.getDefinitions()) { // Check if there are existing definitions
-                 // modeler.clear(); // Or create a new blank diagram
-                 modeler.createDiagram().then(() => {
-                    if (reportRenderAttempt) {
-                        reportRenderAttempt({ xml: diagramXML, status: 'success', error: null });
-                    }
-                 }).catch(err => {
-                    console.error('Error creating blank diagram:', err);
-                    if (reportRenderAttempt) {
-                        reportRenderAttempt({ xml: diagramXML, status: 'failure', error: err });
-                    }
-                 });
-            } else {
-                 // Already blank or no definitions, report success
-                if (reportRenderAttempt) {
-                    reportRenderAttempt({ xml: diagramXML, status: 'success', error: null });
-                }
+        if (!modeler || diagramXML === null || diagramXML === undefined ) { // Check for null or undefined explicitly
+            // If modeler exists but diagramXML is null/undefined, it might mean we want to clear or do nothing.
+            // If diagramXML is explicitly set to empty string, it's handled below.
+            // If no reportRenderAttempt, we can't report, so exit.
+            if (!reportRenderAttempt && (diagramXML === null || diagramXML === undefined)) {
+                console.warn("reportRenderAttempt is not available, cannot report render status for null/undefined XML.");
+                return;
             }
+            // If diagramXML is null or undefined, and we have reportRenderAttempt, what to do?
+            // For now, let's assume an explicit empty string means "clear", and null/undefined means "no change from current state" or "initial load pending".
+            // If it's truly an attempt to set a null/undefined diagram, it should probably be an error or a specific state.
+            // Let's assume for now that if diagramXML is null/undefined, we don't attempt an import.
+            // If it was an intentional clear, diagramXML should be ''.
             return;
         }
 
-        const currentAttemptXml = diagramXML;
+        const currentAttemptXml = diagramXML; // Capture the XML for this attempt
+
+        if (diagramXML === "") { // If diagramXML is an empty string, treat as a successful clear or initial empty state
+            modeler.createDiagram().then(() => {
+                if (reportRenderAttempt) {
+                    reportRenderAttempt(currentAttemptXml, 'success', null );
+                }
+            }).catch(err => {
+                console.error('Error creating blank diagram:', err);
+                if (reportRenderAttempt) {
+                    reportRenderAttempt(currentAttemptXml, 'failure', err.message || 'Failed to create blank diagram' );
+                }
+            });
+            return;
+        }
+
+        console.log('Importing BPMN XML:', currentAttemptXml);
 
         modeler.importXML(currentAttemptXml)
             .then(({ warnings }) => {
                 if (warnings && warnings.length) {
                     console.warn('BPMN Import Warnings:', warnings);
                 }
-                // reportRenderAttempt is already checked for existence above
-                reportRenderAttempt({ xml: currentAttemptXml, status: 'success', error: null });
+                if (reportRenderAttempt) {
+                    reportRenderAttempt(currentAttemptXml, 'success', null);
+                }
                 const canvas = modeler.get('canvas');
                 canvas.zoom('fit-viewport');
-                // Example overlay, adjust as needed
-                // const overlays = modeler.get('overlays');
-                // overlays.add('SCAN_OK', 'note', {
-                // position: { bottom: 0, right: 0 },
-                // html: '<div class="diagram-note">Diagram Loaded</div>'
-                // });
             })
             .catch(err => {
-                console.error('BPMN Import Error in Modeler.jsx:', err);
-                // reportRenderAttempt is already checked for existence above
-                reportRenderAttempt({ xml: currentAttemptXml, status: 'failure', error: err });
+                console.error('BPMN Import Error in Modeler.jsx:', err); 
+                if (reportRenderAttempt) {
+                    // Pass currentAttemptXml to link the error to the specific XML
+                    reportRenderAttempt(currentAttemptXml, 'failure', err.message || 'Unknown import error');
+                }
             });
     }, [diagramXML, reportRenderAttempt]); // reportRenderAttempt is now memoized
 

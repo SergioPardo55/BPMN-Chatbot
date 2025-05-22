@@ -82,7 +82,6 @@ You are the Developer Support AI Agent for a technical process modeler. Your rol
         fullText += chunk.text;
         }
     }
-    console.log(fullText);
     return fullText;
   }
   

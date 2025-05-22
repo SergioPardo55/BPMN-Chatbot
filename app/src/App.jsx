@@ -1,12 +1,9 @@
-import React from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar/sidebar';
 import Main from './components/main/main';
-import BpmnJS from 'bpmn-js';
 import BPMNModeler from './components/BPMN/Modeler';
 
 const App = () => {
-  console.log(BpmnJS);
   return (
     <div className="app-container">
       <div className="sidebar">
