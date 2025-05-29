@@ -80,8 +80,6 @@ function BPMNModeler() {
             return;
         }
 
-        console.log('Importing BPMN XML:', currentAttemptXml);
-
         modeler.importXML(currentAttemptXml)
             .then(({ warnings }) => {
                 if (warnings && warnings.length) {

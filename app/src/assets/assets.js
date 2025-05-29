@@ -16,6 +16,7 @@ import check_icon from './check.svg'
 import gear_icon from './gear.svg'
 import check_gear_icon from './check_gear.svg'
 import appian_logo from '/appian-seeklogo.svg'
+import selected_icon from './selected_icon.svg'
 
 export const assets = {
     history_icon,
@@ -35,5 +36,6 @@ export const assets = {
     check_icon,
     gear_icon,
     check_gear_icon,
-    appian_logo
+    appian_logo,
+    selected_icon
 }

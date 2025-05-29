@@ -92,6 +92,8 @@ const ContextProvider = (props) => {
     const [resultData, setResultData] = useState("");
     const [diagramXML, setDiagramXML] = useState(INITIAL_DIAGRAM); // Initialize with default diagram
     const [includeDiagramInPrompt, setIncludeDiagramInPrompt] = useState(false);
+    const [selectedBPMNElements, setSelectedBPMNElements] = useState([]); // New state for selected elements
+    const [includeSelectedElementsInPrompt, setIncludeSelectedElementsInPrompt] = useState(false); // New state for toggling inclusion
     const [renderDiagram, setRenderDiagram] = useState(false);
     const [appianQuery, setAppianQuery] = useState(""); 
 
@@ -116,7 +118,6 @@ const ContextProvider = (props) => {
         }, [renderAttempt]); // Corrected dependency array for the promise resolver effect
     
     const newChat = () => {
-        console.log("newChat function called");
         setLoading(false);
         setShowResult(false);
         setRecentPrompt("");
@@ -125,6 +126,8 @@ const ContextProvider = (props) => {
         setPrevResults([]);
         setShowResult(true); 
         setIncludeDiagramInPrompt(false); 
+        setSelectedBPMNElements([]); // Reset selected elements
+        setIncludeSelectedElementsInPrompt(false); // Reset toggle
         setRenderDiagram(false);
     }
 
@@ -194,15 +197,24 @@ const ContextProvider = (props) => {
         setInput(""); 
         setLoading(false); 
         setIncludeDiagramInPrompt(false); 
+        setSelectedBPMNElements([]); // Reset selected elements
+        setIncludeSelectedElementsInPrompt(false); // Reset toggle
         setRenderDiagram(false); 
         setAppianQuery(false);
     };
 
+    // Including the diagram and the selected elements in the prompt is incompatible
     const toggleIncludeDiagram = () => {
         setIncludeDiagramInPrompt(prev => {
             const newIncludeState = !prev;
             return newIncludeState;
         });
+        setIncludeSelectedElementsInPrompt(false);
+    };
+
+    const toggleIncludeSelectedElements = () => { // New function to toggle selected elements inclusion
+        setIncludeSelectedElementsInPrompt(prev => !prev);
+        setIncludeDiagramInPrompt(false);
     };
 
     const toggleAppianQuery = () => {
@@ -246,27 +258,31 @@ const ContextProvider = (props) => {
         let userInput = prompt;
         let queryToSendToAI = userInput;
 
+        // Append selected BPMN elements if toggled on and elements are selected
+        if (includeSelectedElementsInPrompt && selectedBPMNElements.length > 0) {
+            const elementsData = selectedBPMNElements.map(element => ({
+                id: element.id,
+                type: element.$type,
+                name: element.name
+            }));
+            queryToSendToAI += `\n\ <SELECTED_BPMN_ELEMENTS> \n${JSON.stringify(elementsData, null, 2)} </SELECTED_BPMN_ELEMENTS>`;
+        }
+
         // Compose the prompt based on recentPrompt and state
         if (recentPrompt === "Create template for process model") {
-            console.log("Create template for process model");
             queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a rough idea of what a process should do and the goal of it.
                                 For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping.
                                 You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${userInput}`;
         } else if (recentPrompt === "Create process model from description") {
-            console.log("Create process model from description");
             queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${userInput}`;
         } else if (recentPrompt === "Start modelling session from scratch") {
-            console.log("Start modelling session from scratch");
             queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${userInput}`;
         } else if (recentPrompt === "Recommend next elements from file") {
-            console.log("Recommend next elements from file");
             queryToSendToAI = `<OUTPUT_MODEL_CODE> Given the following BPMN XML, recommend the next elements to add and explain why. ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}\n\nUser's request: ${userInput}`;
         } else if (includeDiagramInPrompt){
-            console.log("Include diagram in prompt");
             // If included diagram, append it to the prompt
-            queryToSendToAI = `<PROCESS_MODEL_CODE_INCLUDED> ${userInput}\n ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}`;
+            queryToSendToAI = `<PROCESS_MODEL_CODE_INCLUDED> ${userInput}\\n ${diagramXML ? `\\n\\nCurrent BPMN XML:\\n${diagramXML}` : ''}`;
         } else {
-            console.log("No recent prompt, using user input");
             // If no recent prompt, just use the user input
             queryToSendToAI = userInput;
         }
@@ -287,12 +303,12 @@ const ContextProvider = (props) => {
 
         while (retries < MAX_RETRIES && !xmlValid) {
             try {
+            console.log(queryToSendToAI);
             aiResponse = await runChat(queryToSendToAI);
             // If renderDiagram is true, expect XML in response
             if (renderDiagram) {
                 const xml = extractBpmnXml(aiResponse);
                 if (xml) {
-                    console.log("XML found in response");
                 // Try to import XML into modeler (simulate validation)
                 try {
                     // If you have a modeler instance, validate here. For now, just check if it's non-empty.
@@ -362,8 +378,10 @@ const ContextProvider = (props) => {
         }
         setRecentPrompt(userInput);
         setInput("");
-        setIncludeDiagramInPrompt(false);
+        // setIncludeDiagramInPrompt(false); // Do not reset here, allow user to keep it toggled
+        // setIncludeSelectedElementsInPrompt(false); // Do not reset here
         setRenderDiagram(false);
+        setIncludeSelectedElementsInPrompt(false);
     }
 
     const delayPara = async (fullStr) => {
@@ -426,9 +444,14 @@ const ContextProvider = (props) => {
         setDiagramXML,
         includeDiagramInPrompt,
         setIncludeDiagramInPrompt,
+        selectedBPMNElements, // Export new state
+        setSelectedBPMNElements, // Export new setter
+        includeSelectedElementsInPrompt, // Export new state
+        toggleIncludeSelectedElements, // Export new toggle function
         renderDiagram, 
         setRenderDiagram, 
         appianQuery,
+        setAppianQuery, // Added setter for appianQuery
         isModelerInitialized, 
         setIsModelerInitialized, 
         reportRenderAttempt,
@@ -442,7 +465,12 @@ const ContextProvider = (props) => {
         prepareAppianQuery,
         cancelPreparedAction,
         toggleIncludeDiagram,
-        toggleAppianQuery
+        toggleAppianQuery,
+        // New states and functions for selected elements
+        selectedBPMNElements,
+        setSelectedBPMNElements,
+        includeSelectedElementsInPrompt,
+        toggleIncludeSelectedElements
     };
 
     return <Context.Provider value={contextValue}>{props.children}</Context.Provider>;
