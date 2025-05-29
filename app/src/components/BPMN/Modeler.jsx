@@ -13,7 +13,7 @@ function BPMNModeler() {
     const bpmnModelerRef = useRef(null);
     const [isCustomPanelVisible, setIsCustomPanelVisible] = useState(false);
 
-    const { diagramXML, reportRenderAttempt } = useContext(Context);
+    const { diagramXML, reportRenderAttempt, setSelectedBPMNElements } = useContext(Context); // Added setSelectedBPMNElements
 
     // Effect for initializing and destroying the modeler instance
     useEffect(() => {
@@ -35,14 +35,24 @@ function BPMNModeler() {
         };
         eventBus.on('custom.togglePanel', togglePanelHandler);
 
+        // Listen for selection changes
+        const selectionChangedHandler = (event) => {
+            const { newSelection } = event;
+            const selectedBusinessObjects = newSelection.map(element => element.businessObject);
+            setSelectedBPMNElements(selectedBusinessObjects);
+        };
+
+        eventBus.on('selection.changed', selectionChangedHandler);
+
         return () => {
             eventBus.off('custom.togglePanel', togglePanelHandler);
+            eventBus.off('selection.changed', selectionChangedHandler); // Unsubscribe from selection changes
             if (bpmnModelerRef.current) {
                 bpmnModelerRef.current.destroy();
                 bpmnModelerRef.current = null;
             }
         };
-    }, []); // Empty dependency array: runs once on mount and cleans up on unmount
+    }, [setSelectedBPMNElements]); // Added setSelectedBPMNElements to dependency array
 
     // Effect for loading diagramXML when it changes
     useEffect(() => {
