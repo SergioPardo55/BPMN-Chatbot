@@ -463,12 +463,7 @@ const ContextProvider = (props) => {
         prepareAppianQuery,
         cancelPreparedAction,
         toggleIncludeDiagram,
-        toggleAppianQuery,
-        // New states and functions for selected elements
-        selectedBPMNElements,
-        setSelectedBPMNElements,
-        includeSelectedElementsInPrompt,
-        toggleIncludeSelectedElements
+        toggleAppianQuery
     };
 
     return <Context.Provider value={contextValue}>{props.children}</Context.Provider>;

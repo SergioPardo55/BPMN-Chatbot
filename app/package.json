@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "predeploy": "npm run build",
+<<<<<<< HEAD
     "deploy": "gh-pages -d build",
+=======
+    "deploy": "gh-pages -d dist",
+>>>>>>> 10bc3a7 (gh Pages 2nd attempt)
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -19,16 +23,23 @@
     "eslint": "^9.22.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "gh-pages": "^6.3.0",
     "globals": "^16.0.0",
     "gh-pages": "^6.1.1",
     "vite": "^6.3.1"
   },
   "dependencies": {
     "@chatscope/chat-ui-kit-react": "^2.0.3",
+    "@google/genai": "^0.12.0",
+    "@google/generative-ai": "^0.24.1",
     "bpmn-js": "^18.6.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-webkit": "^0.0.0"
+<<<<<<< HEAD
   }, 
+=======
+  },
+>>>>>>> 10bc3a7 (gh Pages 2nd attempt)
   "homepage": "https://SergioPardo55/BPMN-Chatbot"
 }
