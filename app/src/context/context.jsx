@@ -214,7 +214,7 @@ const ContextProvider = (props) => {
 
     const toggleIncludeSelectedElements = () => { // New function to toggle selected elements inclusion
         setIncludeSelectedElementsInPrompt(prev => !prev);
-        setIncludeDiagramInPrompt(false);
+        setIncludeDiagramInPrompt(true);
     };
 
     const toggleAppianQuery = () => {
@@ -258,16 +258,6 @@ const ContextProvider = (props) => {
         let userInput = prompt;
         let queryToSendToAI = userInput;
 
-        // Append selected BPMN elements if toggled on and elements are selected
-        if (includeSelectedElementsInPrompt && selectedBPMNElements.length > 0) {
-            const elementsData = selectedBPMNElements.map(element => ({
-                id: element.id,
-                type: element.$type,
-                name: element.name
-            }));
-            queryToSendToAI += `\n\ <SELECTED_BPMN_ELEMENTS> \n${JSON.stringify(elementsData, null, 2)} </SELECTED_BPMN_ELEMENTS>`;
-        }
-
         // Compose the prompt based on recentPrompt and state
         if (recentPrompt === "Create template for process model") {
             queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a rough idea of what a process should do and the goal of it.
@@ -291,11 +281,20 @@ const ContextProvider = (props) => {
         if (renderDiagram) {
             queryToSendToAI += `\n\nYou must output the BPMN 2.0 XML code for this query. Delimit the XML with <BPMN_XML_START> and <BPMN_XML_END>. Also provide an explanation of the model.`;
         }
-
+        // Append selected BPMN elements if toggled on and elements are selected
+        if (includeSelectedElementsInPrompt && selectedBPMNElements.length > 0) {
+            const elementsData = selectedBPMNElements.map(element => ({
+                id: element.id,
+                type: element.$type,
+                name: element.name
+            }));
+            console.log("Selected BPMN Elements:", elementsData);
+            queryToSendToAI = `\n\ <SELECTED_BPMN_ELEMENTS> \n${JSON.stringify(elementsData, null, 2)} </SELECTED_BPMN_ELEMENTS>`+queryToSendToAI;
+        }
         if (appianQuery) {
             queryToSendToAI = `<APPIAN_QUERY> `+ queryToSendToAI;
         }
-
+        console.log(queryToSendToAI);
         let aiResponse = "";
         let retries = 0;
         let xmlValid = false;
@@ -303,7 +302,6 @@ const ContextProvider = (props) => {
 
         while (retries < MAX_RETRIES && !xmlValid) {
             try {
-            console.log(queryToSendToAI);
             aiResponse = await runChat(queryToSendToAI);
             // If renderDiagram is true, expect XML in response
             if (renderDiagram) {
