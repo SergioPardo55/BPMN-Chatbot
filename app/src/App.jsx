@@ -1,6 +1,6 @@
 import './App.css';
 import Sidebar from './components/sidebar/sidebar';
-import Main from './components/Main/';
+import Main from './components/Main/Main';
 import BPMNModeler from './components/BPMN/Modeler';
 
 const App = () => {
