@@ -288,13 +288,11 @@ const ContextProvider = (props) => {
                 type: element.$type,
                 name: element.name
             }));
-            console.log("Selected BPMN Elements:", elementsData);
             queryToSendToAI = `\n\ <SELECTED_BPMN_ELEMENTS> \n${JSON.stringify(elementsData, null, 2)} </SELECTED_BPMN_ELEMENTS>`+queryToSendToAI;
         }
         if (appianQuery) {
             queryToSendToAI = `<APPIAN_QUERY> `+ queryToSendToAI;
         }
-        console.log(queryToSendToAI);
         let aiResponse = "";
         let retries = 0;
         let xmlValid = false;
