@@ -33,6 +33,7 @@
     "@google/genai": "^0.12.0",
     "@google/generative-ai": "^0.24.1",
     "bpmn-js": "^18.6.1",
+    "dotenv": "^16.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-webkit": "^0.0.0"

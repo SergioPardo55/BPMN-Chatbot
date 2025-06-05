@@ -1,3 +1,5 @@
+import { assets } from "../../assets/assets";
+
 export default class CustomPalette {
     constructor(eventBus, palette, translate) { // Injected eventBus, removed bpmnJS, create, elementFactory
       this.eventBus = eventBus;
@@ -19,7 +21,7 @@ export default class CustomPalette {
       return {
         'toggle-custom-tools': {
           group: 'tools',
-          imageUrl: "/appian-seeklogo.svg",
+          imageUrl: assets.appian_logo,
           title: translate('Toggle Appian Smart-Services'),
           action: {
             click: toggleCustomToolsPanelAction

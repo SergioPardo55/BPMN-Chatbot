@@ -9,7 +9,7 @@ import {
 
 async function runChat(prompt) {
   const ai = new GoogleGenAI({
-    apiKey: "AIzaSyCgg4hvZXXJOCgGsnLP4Yr1CxQhT_ZTcpc"
+    apiKey: variables.env.VITE_GEMINI_API_KEY
   });
   const config = {
     systemInstruction: `## Identity
