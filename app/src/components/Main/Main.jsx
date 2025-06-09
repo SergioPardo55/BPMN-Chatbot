@@ -21,7 +21,10 @@ const Main =() =>{
             toggleAppianQuery, 
             includeDiagramInPrompt, 
             renderDiagram,
-            appianQuery
+            appianQuery,
+            selectedBPMNElements, 
+            includeSelectedElementsInPrompt, 
+            toggleIncludeSelectedElements 
         } = useContext(Context);
         
         const [awaitingFileUploadForAction, setAwaitingFileUploadForAction] = useState(null); // This is the correct local state
@@ -275,7 +278,7 @@ const Main =() =>{
                                 src={(appianQuery) ? assets.check_icon : assets.appian_logo} 
                                 alt="Appian Query / Appian Query active" 
                                 title={(appianQuery) ? "Appian Query is active." : "Appian Query (click)"}
-                                onClick={toggleAppianQuery} // This sets renderDiagram true and recentPrompt to "Generate process model"
+                                onClick={toggleAppianQuery} 
                                 className={(appianQuery) ? 'active' : ''} 
                             />
                             {/* Main Gear Icon for initiating "Generate process model" or indicating an active diagram generation mode */}
@@ -283,7 +286,7 @@ const Main =() =>{
                                 src={(renderDiagram) ? assets.check_gear_icon : assets.gear_icon} 
                                 alt="Generate model / Diagram generation active" 
                                 title={(renderDiagram) ? "Diagram generation is active. Describe the diagram." : "Generate process model (click, then describe)"}
-                                onClick={handleGenerateModelClick} // This sets renderDiagram true and recentPrompt to "Generate process model"
+                                onClick={handleGenerateModelClick} 
                                 className={(renderDiagram) ? 'active' : ''} 
                             />
                             {/* Icon for Include Diagram */} 
@@ -293,7 +296,7 @@ const Main =() =>{
                                     alt="Diagram included - Click to exclude" 
                                     title="Diagram included - Click to exclude"
                                     onClick={toggleIncludeDiagram} 
-                                    className='active' 
+                                    className={'active'} 
                                 />
                             ) : (
                                 <img 
@@ -301,9 +304,17 @@ const Main =() =>{
                                     alt="Include current diagram in prompt" 
                                     title="Include current diagram in prompt" 
                                     onClick={toggleIncludeDiagram} 
-                                    className='' 
+                                    className={''} 
                                 />
                             )}
+                            {/* Icon for Include Selected BPMN Elements */} 
+                            <img 
+                                src={includeSelectedElementsInPrompt ? assets.check_icon : assets.selected_icon} // Assuming assets.select_elements_icon exists
+                                alt={includeSelectedElementsInPrompt ? "Selected elements included - Click to exclude" : "Include selected diagram elements in prompt"}
+                                title={includeSelectedElementsInPrompt ? "Selected elements included - Click to exclude" : (selectedBPMNElements.length > 0 ? "Include selected diagram elements in prompt" : "Select elements in the diagram to enable")}
+                                onClick={selectedBPMNElements.length > 0 ? toggleIncludeSelectedElements : undefined}
+                                className={`${includeSelectedElementsInPrompt ? 'active' : ''} ${selectedBPMNElements.length === 0 ? 'disabled' : ''}`}
+                            />
                             {input?<img onClick={()=>onSent(input)} src={assets.send_icon} alt=""  />:null}
                         </div>
                     </div>
