@@ -1,31 +1,100 @@
-.app-container {
-    display: flex;           /* Create a flex container */
-    height: 100vh;           /* Full screen height */
-    overflow: hidden;
-    width: 100vw;            /* Full screen width */
+body, html, #root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars on body/html */
   }
   
+  .app-container {
+    display: flex;
+    height: 100vh; /* Full viewport height */
+    width: 100vw; /* Full viewport width */
+  }
+  
+  /* Assuming .sidebar already has styles defining its width */
   .sidebar {
-    background-color: #f0f4f9;
-    height: 100vh;           /* Make the sidebar fill the screen vertically */
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    /* Add height: 100%; and overflow: auto; if sidebar content can scroll */
+    height: 100%;
+    overflow-y: auto; /* Example if sidebar needs scrolling */
   }
   
   .right-pane {
-    display: flex;           /* Align content horizontally */
-    flex-grow: 1;             /* Take up the remaining space */
-    height: 100vh;           /* Ensure the right pane takes the full height */
-    overflow: hidden;
+    display: flex;
+    flex-grow: 1; /* Takes remaining space after sidebar */
+    height: 100%; 
+    overflow: hidden; /* Important for resizing behavior */
   }
   
   .main-section {
-    width: 40%;              /* Main section takes half of the right pane */
-    overflow: auto;          /* Allow scrolling if necessary */
-    border-right: 1px solid #ccc;  /* Optional: Add a border between sections */
+    /* flex-basis, display, flex-shrink are set by inline style */
+    height: 100%;
+    overflow-y: auto; /* Allow chat content to scroll */
+    overflow-x: hidden;
+    display: flex; /* This ensures Main component can fill height */
+    flex-direction: column; 
+    background-color: #f0f0f0; /* Example background, adjust as needed */
+    transition: flex-basis 0.2s ease-out, opacity 0.2s ease-out; /* Smooth transition for toggle */
+    opacity: 1;
+  }
+  
+  .main-section[style*="display: none"] { /* More specific selector for hidden state */
+    opacity: 0;
+  }
+  
+  
+  .resizer {
+    flex-basis: 5px; 
+    flex-shrink: 0;
+    background-color: #ccc; 
+    cursor: col-resize; 
+    height: 100%;
+    /* display is set by inline style */
+    transition: opacity 0.2s ease-out;
+  }
+  
+  .resizer[style*="display: none"] {
+    opacity: 0;
   }
   
   .bpmn-section {
-    width: 60%;              /* Changed from 100% to 60% */
-    height: 100vh;            /* Ensure the height fills the container */
-    overflow: hidden;
-    position: relative;
+    flex-grow: 1; 
+    flex-basis: 0; /* Allow it to shrink and grow */
+    min-width: 200px; /* Minimum sensible width for BPMN panel */
+    height: 100%;
+    overflow: hidden; /* BPMN modeler usually handles its own scroll/zoom */
+    display: flex; 
+    flex-direction: column;
+    background-color: #ffffff; /* Example background */
+  }
+  
+  .toggle-chat-btn {
+    position: fixed; 
+    bottom: 20px;
+    /* Place it relative to the sidebar or main content area if preferred */
+    /* For example, if sidebar width is known (e.g., 250px):
+    left: calc(250px + 20px); 
+    */
+    right: 20px; /* Fallback if sidebar width is dynamic or unknown here */
+    padding: 8px 12px;
+    font-size: 14px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 1000; /* Ensure it's above other elements */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  
+  .toggle-chat-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Ensure Main and BPMNModeler components fill their containers if they don't already */
+  .main-section > :first-child, 
+  .bpmn-section > :first-child {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* This might be needed if Main/BPMNModeler don't fill height by default */
   }
