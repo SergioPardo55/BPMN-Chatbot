@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useContext } from 'react';
+import { useEffect, useRef, useState, useContext, forwardRef, useImperativeHandle } from 'react'; // Added forwardRef, useImperativeHandle
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/diagram-js.css';
@@ -9,7 +9,7 @@ import customModdleDescriptor from '../custom/custom.json'; // Import the custom
 import { Context } from '../../context/AppContext'; // Corrected path for Context
 import { appianSmartServices, APPIAN_ICON_BASE_URL } from '../custom/appianServices'; // Import Appian services
 
-function BPMNModeler() {
+const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
     const bpmnModelerRef = useRef(null);
     const [isCustomPanelVisible, setIsCustomPanelVisible] = useState(false);
 
@@ -131,6 +131,11 @@ function BPMNModeler() {
         }
     };
 
+    // Expose exportDiagram function via ref
+    useImperativeHandle(ref, () => ({
+        exportDiagram
+    }));
+
     // Generalized function to create shapes for Appian Smart Services
     const handleCreateShape = (service, event) => {
         const modelerInstance = bpmnModelerRef.current;
@@ -186,16 +191,10 @@ function BPMNModeler() {
     };
 
     return (
-        <div style={{ height: '100%', width: '100%', position: 'relative' }}> {/* Added width and position relative for button positioning */}
+        <div style={{ height: '100%', width: '100%', position: 'relative' }}>
             <div id="canvas" style={{ height: '100%', width: '100%' }}></div>
-            {/* Export Diagram Button */}
-            <button 
-                id="export-diagram-button" 
-                onClick={exportDiagram} 
-                title="Export BPMN Diagram"
-            >
-                Export Diagram
-            </button>
+            
+            {/* Export Diagram Button removed from here */}
 
             {/* Custom Tools Panel */}
             {isCustomPanelVisible && (
@@ -219,6 +218,6 @@ function BPMNModeler() {
             )}
         </div>
     );
-}
+}); // Closing forwardRef
 
 export default BPMNModeler;

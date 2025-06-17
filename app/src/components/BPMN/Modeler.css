@@ -1,8 +1,8 @@
 /* BPMN Modeler styles */
 #canvas {
     height: 100%;
-    padding: 0;
-    margin: 0;
+    width: 100%;
+    background-color: #f9f9f9; /* Or your preferred canvas background */
 }
 
 .diagram-note {
@@ -19,33 +19,6 @@
 
 .needs-discussion:not(.djs-connection) .djs-visual > :nth-child(1) {
     stroke: rgba(66, 180, 21, 0.7) !important;
-}
-
-/* Updated Export Diagram Button Styling */
-#export-diagram-button {
-    position: absolute; /* Changed from fixed to absolute */
-    bottom: 20px;
-    left: 50%; /* Center horizontally */
-    transform: translateX(-50%); /* Adjust for button width to truly center */
-    z-index: 10;
-    padding: 10px 15px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-#export-diagram-button:hover {
-    background-color: #0056b3;
-}
-
-#save-button {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 10; /* Ensure it's above the canvas but potentially below a panel */
 }
 
 /* Custom Tools Panel Styling */
@@ -89,11 +62,6 @@
     height: 30px; /* Adjust as needed */
     object-fit: contain; /* Ensures the image scales nicely */
 }
-
-/* Optional: If you want text next to icons, adjust padding and alignment */
-/* .custom-tool-button span {
-    margin-left: 5px;
-} */
 
 /* Debug styles from previous attempts - can be removed if no longer needed */
 /* .djs-palette-entries {

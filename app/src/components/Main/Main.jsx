@@ -124,143 +124,146 @@ const Main =() =>{
                 <img src={assets.user_icon} alt="" />
             </div>
             <div className="main-container">
-                {showResult ? (
-                    <div className="result">
-                        {/* Display previous prompts and results */}
-                        {prevPrompts.map((prompt, index, arr) => (
-                            <React.Fragment key={index}>
-                                <div className="result-title">
-                                    <img src={assets.user_icon} alt="" />
-                                    <p>{prompt}</p>
-                                </div>
-                                <div className="result-data">
-                                    {loading?(<img src={assets.gemini_icon} alt="" />): (index < arr.length - 1 && (
-                                        <img src={assets.gemini_icon} alt="" />
-                                    )) }
-                                    <p dangerouslySetInnerHTML={{ __html: prevResults.slice(0, -1)[index] }}></p>
-                                </div>
-                            </React.Fragment>
-                        ))}
+                {/* New wrapper for scrollable content */}
+                <div className="chat-content-area"> 
+                    {showResult ? (
+                        <div className="result">
+                            {/* Display previous prompts and results */}
+                            {prevPrompts.map((prompt, index, arr) => (
+                                <React.Fragment key={index}>
+                                    <div className="result-title">
+                                        <img src={assets.user_icon} alt="" />
+                                        <p>{prompt}</p>
+                                    </div>
+                                    <div className="result-data">
+                                        {loading?(<img src={assets.gemini_icon} alt="" />): (index < arr.length - 1 && (
+                                            <img src={assets.gemini_icon} alt="" />
+                                        )) }
+                                        <p dangerouslySetInnerHTML={{ __html: prevResults.slice(0, -1)[index] }}></p>
+                                    </div>
+                                </React.Fragment>
+                            ))}
 
-                        {/* Display current prompt and result/loader */}
-                        <div className="result-data">
-                            <img src={assets.gemini_icon} alt="" />
-                            {loading ? (
-                                <div className="loader">
-                                    <hr />
-                                    <hr />
-                                    <hr />
+                            {/* Display current prompt and result/loader */}
+                            <div className="result-data">
+                                <img src={assets.gemini_icon} alt="" />
+                                {loading ? (
+                                    <div className="loader">
+                                        <hr />
+                                        <hr />
+                                        <hr />
+                                    </div>
+                                ) : (
+                                    <p dangerouslySetInnerHTML={{ __html: resultData }}></p>
+                                )}
+                            </div>
+                            {/* Display option cards if not loading, no recent prompt, and not awaiting file upload */}
+                            {!loading && !recentPrompt && !awaitingFileUploadForAction && prevPrompts.length === 0 && (
+                                <div className="cards initial-options"> 
+                                    <div className="card" onClick={handleCreateTemplateClick}>
+                                        <p>Create template for process model</p>
+                                        <img src={assets.bulb_icon} alt="Start fresh" />
+                                    </div>
+                                    <div className="card" onClick={() => {
+                                        setAwaitingFileUploadForAction('analyze');
+                                        prepareAnalyzeProcessModel(); // UPDATED
+                                    }}>
+                                        <p>Analyze process model</p>
+                                        <img src={assets.compass_icon} alt="Analyze" />
+                                    </div>
+                                    <div className="card" onClick={() => { 
+                                        setAwaitingFileUploadForAction('recommend'); 
+                                        prepareRecommendUpload();
+                                    }}>
+                                        <p>Recommend next elements</p>
+                                        <img src={assets.plus_icon} alt="Recommend" />
+                                    </div>
+                                    <div className="card" onClick={handleCreateFromDescriptionClick}>
+                                        <p>Create process model from description</p>
+                                        <img src={assets.message_icon} alt="Create from description" />
+                                    </div>
+                                    <div className="card" onClick={handleStartModellingClick}> 
+                                        <p>Start modelling session from scratch</p>
+                                        <img src={assets.code_icon} alt="Start modelling session from scratch" />
+                                    </div>
+                                    <div className="card" onClick={handleAppianQueryClick}> 
+                                        <p>Appian query</p>
+                                        <img src={assets.appian_logo} alt="Appian Query" />
+                                    </div>
                                 </div>
-                            ) : (
-                                <p dangerouslySetInnerHTML={{ __html: resultData }}></p>
+                            )}
+                            {/* Display file upload UI if awaiting file for an action */}
+                            {!loading && awaitingFileUploadForAction && (
+                                <div className="file-upload-section">
+                                    <p>
+                                        {awaitingFileUploadForAction === 'analyze' 
+                                            ? "Please upload a .bpmn file to analyze:" 
+                                            : "Please upload a .bpmn file to get element recommendations:"}
+                                    </p>
+                                    {!selectedFileName ? (
+                                        <input type="file" accept=".bpmn" onChange={handleFileSelect} ref={fileInputRef} />
+                                    ) : (
+                                        <div className="file-selected-info">
+                                            <p>Selected file: {selectedFileName}</p>
+                                            <button onClick={() => {setSelectedFile(null); setSelectedFileName(""); if(fileInputRef.current) fileInputRef.current.value = null;}} className="change-file-btn">Change file</button>
+                                        </div>
+                                    )}
+                                    {selectedFile && (
+                                        <button onClick={processUploadedFile} className="process-file-btn">Process File</button>
+                                    )}
+                                    <button onClick={cancelFileUpload} className="cancel-upload-btn">Cancel</button>
+                                </div>
+                            )}
+                            {/* Cancel button for prepared actions (when recentPrompt is set and no input has been sent yet) */}
+                            {!loading && !awaitingFileUploadForAction && prevPrompts.length === 0 && recentPrompt && (
+                                <div className="prepared-action-cancel-section">
+                                    <button onClick={cancelPreparedAction} className="cancel-prepared-action-btn">Cancel</button>
+                                </div>
                             )}
                         </div>
-                        {/* Display option cards if not loading, no recent prompt, and not awaiting file upload */}
-                        {!loading && !recentPrompt && !awaitingFileUploadForAction && prevPrompts.length === 0 && (
-                            <div className="cards initial-options"> 
-                                <div className="card" onClick={handleCreateTemplateClick}>
-                                    <p>Create template for process model</p>
-                                    <img src={assets.bulb_icon} alt="Start fresh" />
-                                </div>
-                                <div className="card" onClick={() => {
-                                    setAwaitingFileUploadForAction('analyze');
-                                    prepareAnalyzeProcessModel(); // UPDATED
-                                }}>
-                                    <p>Analyze process model</p>
-                                    <img src={assets.compass_icon} alt="Analyze" />
-                                </div>
-                                <div className="card" onClick={() => { 
-                                    setAwaitingFileUploadForAction('recommend'); 
-                                    prepareRecommendUpload();
-                                }}>
-                                    <p>Recommend next elements</p>
-                                    <img src={assets.plus_icon} alt="Recommend" />
-                                </div>
-                                <div className="card" onClick={handleCreateFromDescriptionClick}>
-                                    <p>Create process model from description</p>
-                                    <img src={assets.message_icon} alt="Create from description" />
-                                </div>
-                                <div className="card" onClick={handleStartModellingClick}> 
-                                    <p>Start modelling session from scratch</p>
-                                    <img src={assets.code_icon} alt="Start modelling session from scratch" />
-                                </div>
-                                <div className="card" onClick={handleAppianQueryClick}> 
-                                    <p>Appian query</p>
-                                    <img src={assets.appian_logo} alt="Appian Query" />
-                                </div>
+                    ) : (
+                        <>
+                            <div className="greet">
+                                <p><span>Hello, dev</span></p>
+                                <p>How can I help you today?</p>
                             </div>
-                        )}
-                        {/* Display file upload UI if awaiting file for an action */}
-                        {!loading && awaitingFileUploadForAction && (
-                            <div className="file-upload-section">
-                                <p>
-                                    {awaitingFileUploadForAction === 'analyze' 
-                                        ? "Please upload a .bpmn file to analyze:" 
-                                        : "Please upload a .bpmn file to get element recommendations:"}
-                                </p>
-                                {!selectedFileName ? (
-                                    <input type="file" accept=".bpmn" onChange={handleFileSelect} ref={fileInputRef} />
-                                ) : (
-                                    <div className="file-selected-info">
-                                        <p>Selected file: {selectedFileName}</p>
-                                        <button onClick={() => {setSelectedFile(null); setSelectedFileName(""); if(fileInputRef.current) fileInputRef.current.value = null;}} className="change-file-btn">Change file</button>
+                            {!loading && !recentPrompt && !awaitingFileUploadForAction && (
+                                <div className="cards initial-options"> 
+                                    <div className="card" onClick={handleCreateTemplateClick}>
+                                        <p>Create template for process model</p>
+                                        <img src={assets.bulb_icon} alt="Start fresh" />
                                     </div>
-                                )}
-                                {selectedFile && (
-                                    <button onClick={processUploadedFile} className="process-file-btn">Process File</button>
-                                )}
-                                <button onClick={cancelFileUpload} className="cancel-upload-btn">Cancel</button>
-                            </div>
-                        )}
-                        {/* Cancel button for prepared actions (when recentPrompt is set and no input has been sent yet) */}
-                        {!loading && !awaitingFileUploadForAction && prevPrompts.length === 0 && recentPrompt && (
-                            <div className="prepared-action-cancel-section">
-                                <button onClick={cancelPreparedAction} className="cancel-prepared-action-btn">Cancel</button>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <>
-                        <div className="greet">
-                            <p><span>Hello, dev</span></p>
-                            <p>How can I help you today?</p>
-                        </div>
-                        {!loading && !recentPrompt && !awaitingFileUploadForAction && (
-                            <div className="cards initial-options"> 
-                                <div className="card" onClick={handleCreateTemplateClick}>
-                                    <p>Create template for process model</p>
-                                    <img src={assets.bulb_icon} alt="Start fresh" />
+                                    <div className="card" onClick={() => {
+                                        setAwaitingFileUploadForAction('analyze');
+                                        prepareAnalyzeProcessModel(); // UPDATED
+                                    }}>
+                                        <p>Analyze process model</p>
+                                        <img src={assets.compass_icon} alt="Analyze" />
+                                    </div>
+                                    <div className="card" onClick={() => { 
+                                        setAwaitingFileUploadForAction('recommend'); 
+                                        prepareRecommendUpload();
+                                    }}>
+                                        <p>Recommend next elements</p>
+                                        <img src={assets.plus_icon} alt="Recommend" />
+                                    </div>
+                                    <div className="card" onClick={handleCreateFromDescriptionClick}>
+                                        <p>Create process model from description</p>
+                                        <img src={assets.message_icon} alt="Create from description" />
+                                    </div>
+                                    <div className="card" onClick={handleStartModellingClick}> 
+                                        <p>Start modelling session from scratch</p>
+                                        <img src={assets.code_icon} alt="Start modelling session from scratch" />
+                                    </div>
+                                    <div className="card" onClick={handleAppianQueryClick}> 
+                                        <p>Appian query</p>
+                                        <img src={assets.appian_logo} alt="Appian Query" />
+                                    </div>
                                 </div>
-                                <div className="card" onClick={() => {
-                                    setAwaitingFileUploadForAction('analyze');
-                                    prepareAnalyzeProcessModel(); // UPDATED
-                                }}>
-                                    <p>Analyze process model</p>
-                                    <img src={assets.compass_icon} alt="Analyze" />
-                                </div>
-                                <div className="card" onClick={() => { 
-                                    setAwaitingFileUploadForAction('recommend'); 
-                                    prepareRecommendUpload();
-                                }}>
-                                    <p>Recommend next elements</p>
-                                    <img src={assets.plus_icon} alt="Recommend" />
-                                </div>
-                                <div className="card" onClick={handleCreateFromDescriptionClick}>
-                                    <p>Create process model from description</p>
-                                    <img src={assets.message_icon} alt="Create from description" />
-                                </div>
-                                <div className="card" onClick={handleStartModellingClick}> 
-                                    <p>Start modelling session from scratch</p>
-                                    <img src={assets.code_icon} alt="Start modelling session from scratch" />
-                                </div>
-                                <div className="card" onClick={handleAppianQueryClick}> 
-                                    <p>Appian query</p>
-                                    <img src={assets.appian_logo} alt="Appian Query" />
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
+                            )}
+                        </>
+                    )}
+                </div> {/* End of chat-content-area */}
                 
                 <div className="main-bottom">
                     <div className="search-box">

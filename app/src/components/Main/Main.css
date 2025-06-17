@@ -1,8 +1,8 @@
 .main {
     flex: 1;  /* Ensure the main section takes up the available space */
-    min-height: 100vh; /* Ensure full height */
-    padding-bottom: 15vh;  /* Add padding at the bottom */
     position: relative;
+    display: flex; /* Added */
+    flex-direction: column; /* Added */
   }
   
   .main .nav {
@@ -20,8 +20,19 @@
   }
   
   .main-container {
-    max-width: 900px;
-    margin: auto;
+    flex-grow: 1; /* Renamed from .main .main-container to .main-container for clarity */
+    display: flex; /* Added */
+    flex-direction: column; /* Added */
+    overflow: hidden; /* Prevent main-container itself from scrolling */
+  }
+  
+  .chat-content-area { /* New style for the scrollable content */
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0 20px; /* Add padding if needed, was on main-container */
+    max-width: 900px; /* Moved from main-container if desired */
+    width: 100%; /* Ensure it takes full width within its constraints */
+    margin: 0 auto; /* Center content if max-width is applied */
   }
   
   .main .greet {
@@ -79,12 +90,11 @@
   }
   
   .main-bottom {
-    position: absolute;
-    bottom: 0;
     width: 100%;
     max-width: 900px;
     padding: 0px 20px;
     margin: auto;
+    flex-shrink: 0; /* Ensure it doesn't shrink */
   }
   
   .search-box {
@@ -168,8 +178,8 @@
   .loader hr {
     border-radius: 4px;
     border: none;
-    background-color: #f6f7f8;
-    background: linear-gradient(to right, #9ed7ff, #ffffff, #9ed7ff);
+    background-color: #f8f9fa;
+    background: linear-gradient(to right, #9ed7ff, #ffffff , #9ed7ff);
     background-size: 800px 50px;
     height: 20px;
     animation: loader 3s infinite linear;

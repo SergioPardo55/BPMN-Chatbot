@@ -10,6 +10,7 @@ const App = () => {
   const [isResizing, setIsResizing] = useState(false);
   
   const rightPaneRef = useRef(null);
+  const modelerRef = useRef(null); // Ref for BPMNModeler
 
   // Set initial width based on percentage once rightPaneRef is available
   useEffect(() => {
@@ -62,6 +63,12 @@ const App = () => {
     setIsChatVisible(prev => !prev);
   };
 
+  const handleExportDiagramClick = () => {
+    if (modelerRef.current) {
+      modelerRef.current.exportDiagram();
+    }
+  };
+
   const chatPanelStyle = {
     flexBasis: isChatVisible ? `${actualChatPanelWidth}px` : '0px',
     display: isChatVisible ? 'flex' : 'none', // Use 'flex' to allow Main to fill it
@@ -88,12 +95,19 @@ const App = () => {
           onMouseDown={handleMouseDownOnResizer}
         />
         <div className="bpmn-section">
-          <BPMNModeler/>
+          <BPMNModeler ref={modelerRef} /> {/* Pass the ref to BPMNModeler */}
         </div>
       </div>
-      <button onClick={toggleChatVisibility} className="toggle-chat-btn">
-        {isChatVisible ? "Hide Chat" : "Show Chat"}
-      </button>
+      
+      {/* Container for bottom buttons */}
+      <div className="bottom-controls-container">
+        <button onClick={toggleChatVisibility} className="bottom-control-btn">
+          {isChatVisible ? "Hide Chat" : "Show Chat"}
+        </button>
+        <button onClick={handleExportDiagramClick} className="bottom-control-btn">
+          Export Diagram
+        </button>
+      </div>
     </div>
   );
 };

@@ -32,8 +32,8 @@ body, html, #root {
     overflow-x: hidden;
     display: flex; /* This ensures Main component can fill height */
     flex-direction: column; 
-    background-color: #f0f0f0; /* Example background, adjust as needed */
-    transition: flex-basis 0.2s ease-out, opacity 0.2s ease-out; /* Smooth transition for toggle */
+    background-color: #ffffff; /* Maintained as white */
+    transition: flex-basis 0.2s ease-out, opacity 0.2s ease-out;
     opacity: 1;
   }
   
@@ -64,29 +64,36 @@ body, html, #root {
     overflow: hidden; /* BPMN modeler usually handles its own scroll/zoom */
     display: flex; 
     flex-direction: column;
-    background-color: #ffffff; /* Example background */
+    background-color: #ffffff; 
   }
   
-  .toggle-chat-btn {
-    position: fixed; 
+  /* New styles for the bottom controls container and buttons */
+  .bottom-controls-container {
+    position: fixed;
     bottom: 20px;
-    /* Place it relative to the sidebar or main content area if preferred */
-    /* For example, if sidebar width is known (e.g., 250px):
-    left: calc(250px + 20px); 
-    */
-    right: 20px; /* Fallback if sidebar width is dynamic or unknown here */
-    padding: 8px 12px;
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust for exact centering */
+    display: flex;
+    gap: 10px; /* Space between buttons */
+    padding: 8px;
+    background-color: rgba(240, 240, 240, 0.85); /* Light background with some transparency */
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000; /* Ensure it's above other elements */
+  }
+  
+  .bottom-control-btn {
+    padding: 8px 15px;
     font-size: 14px;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    z-index: 1000; /* Ensure it's above other elements */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease;
   }
   
-  .toggle-chat-btn:hover {
+  .bottom-control-btn:hover {
     background-color: #0056b3;
   }
   
