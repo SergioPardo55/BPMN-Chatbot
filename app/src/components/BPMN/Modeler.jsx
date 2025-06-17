@@ -8,12 +8,14 @@ import customControlsModule from '../custom';
 import customModdleDescriptor from '../custom/custom.json'; // Import the custom Moddle descriptor
 import { Context } from '../../context/AppContext'; // Corrected path for Context
 import { appianSmartServices, APPIAN_ICON_BASE_URL } from '../custom/appianServices'; // Import Appian services
+import AppianElementDetailsPanel from './AppianElementDetailsPanel'; // Import the new panel
 
 const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
     const bpmnModelerRef = useRef(null);
     const [isCustomPanelVisible, setIsCustomPanelVisible] = useState(false);
+    const [selectedAppianElementDetails, setSelectedAppianElementDetails] = useState(null); // New state
 
-    const { diagramXML, reportRenderAttempt, setSelectedBPMNElements } = useContext(Context); // Added setSelectedBPMNElements
+    const { diagramXML, reportRenderAttempt, setSelectedBPMNElements } = useContext(Context);
 
     // Effect for initializing and destroying the modeler instance
     useEffect(() => {
@@ -38,8 +40,43 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
         // Listen for selection changes
         const selectionChangedHandler = (event) => {
             const { newSelection } = event;
-            const selectedBusinessObjects = newSelection.map(element => element.businessObject);
-            setSelectedBPMNElements(selectedBusinessObjects);
+            setSelectedBPMNElements(newSelection.map(element => element.businessObject));
+
+            if (newSelection.length === 1) {
+                const selectedElement = newSelection[0];
+                const bo = selectedElement.businessObject;
+                let appianDataFromElement = null;
+
+                if (bo.extensionElements && bo.extensionElements.values) {
+                    appianDataFromElement = bo.extensionElements.values.find(
+                        extElem => extElem.$type === 'custom:AppianServiceData'
+                    );
+                }
+                console.log("[Modeler.jsx] Selection changed. AppianData from element:", appianDataFromElement); 
+
+                if (appianDataFromElement && appianDataFromElement.customType) {
+                    // Find the service in appianSmartServices to get the documentationUrl
+                    const serviceDefinition = appianSmartServices.find(
+                        service => service.customType === appianDataFromElement.customType
+                    );
+                    
+                    const dynamicDocumentationUrl = serviceDefinition ? serviceDefinition.documentationUrl : '';
+                    console.log("[Modeler.jsx] Dynamically retrieved documentationUrl:", dynamicDocumentationUrl, "for customType:", appianDataFromElement.customType);
+
+                    setSelectedAppianElementDetails({
+                        id: bo.id,
+                        name: bo.name || 'Unnamed Appian Element',
+                        type: bo.$type,
+                        customType: appianDataFromElement.customType,
+                        customIconUrl: appianDataFromElement.customIconUrl,
+                        documentationUrl: dynamicDocumentationUrl, // Use dynamically retrieved URL
+                    });
+                } else {
+                    setSelectedAppianElementDetails(null);
+                }
+            } else {
+                setSelectedAppianElementDetails(null); 
+            }
         };
 
         eventBus.on('selection.changed', selectionChangedHandler);
@@ -145,22 +182,22 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
             const moddle = modelerInstance.get('moddle');
 
             const iconUrl = APPIAN_ICON_BASE_URL + service.icon;
+            // console.log(`[Modeler.jsx] Creating shape for ${service.name}. Service object:`, service); 
+            // console.log("[Modeler.jsx] Service documentationUrl from appianServices.js:", service.documentationUrl, "Type:", typeof service.documentationUrl); 
 
-            // 1. Create the main business object (e.g., ServiceTask)
             const mainBo = moddle.create(service.type, { name: service.name });
 
-            // Add eventDefinitions if applicable
             if (service.eventDefinitionType) {
                 mainBo.eventDefinitions = [moddle.create(service.eventDefinitionType)];
             }
 
-            // 2. Create the AppianServiceData element
             const appianData = moddle.create('custom:AppianServiceData', {
                 customType: service.customType,
                 customIconUrl: iconUrl
+                // documentationUrl is no longer set here
             });
-
-            // 3. Get or create extensionElements for the mainBo
+            // console.log("[Modeler.jsx] AppianData created by moddle.create (without documentationUrl):", appianData); 
+            
             let extensionElements = mainBo.get('extensionElements');
             if (!extensionElements) {
                 extensionElements = moddle.create('bpmn:ExtensionElements');
@@ -191,12 +228,12 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
     };
 
     return (
-        <div style={{ height: '100%', width: '100%', position: 'relative' }}>
-            <div id="canvas" style={{ height: '100%', width: '100%' }}></div>
-            
-            {/* Export Diagram Button removed from here */}
-
-            {/* Custom Tools Panel */}
+        <div className="modeler-container-flex" style={{ position: 'relative', height: '100%', width: '100%' }}>
+            <div id="canvas" className="canvas-flex-item"></div>
+            {/* Move AppianElementDetailsPanel to the bottom */}
+            <div className="appian-details-panel-container">
+                <AppianElementDetailsPanel details={selectedAppianElementDetails} />
+            </div>
             {isCustomPanelVisible && (
                 <div className="custom-tools-panel">
                     {appianSmartServices.map((service) => (
