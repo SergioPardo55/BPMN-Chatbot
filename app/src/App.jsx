@@ -2,7 +2,8 @@ import './App.css';
 import Sidebar from './components/sidebar/sidebar';
 import Main from './components/Main/Main';
 import BPMNModeler from './components/BPMN/Modeler';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
+import { Context } from './context/AppContext';
 
 const App = () => {
   const [actualChatPanelWidth, setActualChatPanelWidth] = useState(350); // Initial width in pixels
@@ -11,6 +12,7 @@ const App = () => {
   
   const rightPaneRef = useRef(null);
   const modelerRef = useRef(null); // Ref for BPMNModeler
+  const { incrementTotalClicks, totalClicks, bpmnPanelClicks, promptLogs, promptCount, docLinkClicks } = useContext(Context);
 
   // Set initial width based on percentage once rightPaneRef is available
   useEffect(() => {
@@ -20,6 +22,16 @@ const App = () => {
       setActualChatPanelWidth(initialWidth);
     }
   }, []); // Empty dependency array ensures this runs once on mount
+
+  useEffect(() => {
+    const handleClick = () => {
+      incrementTotalClicks();
+    };
+    window.addEventListener('click', handleClick);
+    return () => {
+      window.removeEventListener('click', handleClick);
+    };
+  }, [incrementTotalClicks]);
 
   const handleMouseDownOnResizer = useCallback((e) => {
     setIsResizing(true);
@@ -67,6 +79,24 @@ const App = () => {
     if (modelerRef.current) {
       modelerRef.current.exportDiagram();
     }
+
+    // Create and download log file
+    let logContent = `Total Clicks: ${totalClicks}\nBPMN Panel Clicks: ${bpmnPanelClicks}\nDocumentation Link Clicks: ${docLinkClicks}\n\n`;
+    logContent += `Prompts Sent: ${promptCount}\n\n`;
+    promptLogs.forEach((log, index) => {
+      logContent += `--- Prompt ${index + 1} ---\n`;
+      logContent += `Word Count: ${log.wordCount}\n`;
+      logContent += `Text: ${log.text}\n\n`;
+    });
+
+    const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'log.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
   };
 
   const chatPanelStyle = {

@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import './Modeler.css'; // Assuming styles will be in Modeler.css or a new dedicated CSS file
+import { Context } from '../../context/AppContext';
 
 const AppianElementDetailsPanel = ({ details }) => {
+    const { incrementDocLinkClicks } = useContext(Context);
+
     if (!details) {
         return null; // Don't render anything if no Appian element is selected
     }
@@ -28,6 +31,7 @@ const AppianElementDetailsPanel = ({ details }) => {
                         href={details.documentationUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={incrementDocLinkClicks}
                     >
                         View Appian Documentation
                     </a>

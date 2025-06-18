@@ -15,7 +15,7 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
     const [isCustomPanelVisible, setIsCustomPanelVisible] = useState(false);
     const [selectedAppianElementDetails, setSelectedAppianElementDetails] = useState(null); // New state
 
-    const { diagramXML, reportRenderAttempt, setSelectedBPMNElements } = useContext(Context);
+    const { diagramXML, reportRenderAttempt, setSelectedBPMNElements, incrementBpmnPanelClicks } = useContext(Context);
 
     // Effect for initializing and destroying the modeler instance
     useEffect(() => {
@@ -191,7 +191,7 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
 
             if (service.eventDefinitionType) {
                 mainBo.eventDefinitions = [moddle.create(service.eventDefinitionType)];
-            }
+                }
 
             const appianData = moddle.create('custom:AppianServiceData', {
                 customType: service.customType,
@@ -230,7 +230,7 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
     };
 
     return (
-        <div className="modeler-container-flex" style={{ position: 'relative', height: '100%', width: '100%' }}>
+        <div className="modeler-container-flex" style={{ position: 'relative', height: '100%', width: '100%' }} onClick={incrementBpmnPanelClicks}>
             <div id="canvas" className="canvas-flex-item"></div>
             {/* Move AppianElementDetailsPanel to the bottom */}
             <div className="appian-details-panel-container">

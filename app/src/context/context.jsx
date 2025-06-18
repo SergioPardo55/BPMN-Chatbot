@@ -96,6 +96,11 @@ const ContextProvider = (props) => {
     const [includeSelectedElementsInPrompt, setIncludeSelectedElementsInPrompt] = useState(false); // New state for toggling inclusion
     const [renderDiagram, setRenderDiagram] = useState(false);
     const [appianQuery, setAppianQuery] = useState(""); 
+    const [totalClicks, setTotalClicks] = useState(0);
+    const [bpmnPanelClicks, setBpmnPanelClicks] = useState(0);
+    const [promptLogs, setPromptLogs] = useState([]);
+    const [promptCount, setPromptCount] = useState(0);
+    const [docLinkClicks, setDocLinkClicks] = useState(0);
 
     const [isModelerInitialized, setIsModelerInitialized] = useState(false); 
     const [renderAttempt, setRenderAttempt] = useState({ xml: null, status: null, error: null }); 
@@ -129,7 +134,24 @@ const ContextProvider = (props) => {
         setSelectedBPMNElements([]); // Reset selected elements
         setIncludeSelectedElementsInPrompt(false); // Reset toggle
         setRenderDiagram(false);
+        setTotalClicks(0);
+        setBpmnPanelClicks(0);
+        setPromptLogs([]);
+        setPromptCount(0);
+        setDocLinkClicks(0);
     }
+
+    const incrementTotalClicks = useCallback(() => {
+        setTotalClicks(prev => prev + 1);
+    }, []);
+
+    const incrementBpmnPanelClicks = useCallback(() => {
+        setBpmnPanelClicks(prev => prev + 1);
+    }, []);
+
+    const incrementDocLinkClicks = useCallback(() => {
+        setDocLinkClicks(prev => prev + 1);
+    }, []);
 
     const prepareCreateTemplate = () => {
         setRecentPrompt("Create template for process model"); 
@@ -151,7 +173,7 @@ const ContextProvider = (props) => {
 
     const  prepareStartModellingScratch = () => { // This seems to be "Start modelling session from scratch" in Main.jsx cards
         setRecentPrompt("Start modelling session from scratch"); 
-        setResultData("Please describe the context of the process you want to model. Who are you modelling for? What is it that you want to prioritize in the process?");
+        setResultData("Please describe the context of the process you want to model. Who are you modelling for? What is it that you want to prioritize in the process? Do you have existing structures that you want to use?");
         setShowResult(true);
         setLoading(false);
         setInput("");
@@ -228,53 +250,42 @@ const ContextProvider = (props) => {
         setResultData("");
         setLoading(true);
         setShowResult(true);
-        // Logic to handle the prompt and response
-        // HANDLING THE PROMPT
-        // You may use maximum 2 variables to handle the prompt and the user input
-        // If the state includeDiagramInPrompt is true then the query will be prompt + diagramXML
-        // If the state renderDiagram is true then the query will be prompt + Instructions for including the diagram: You must output the BPMN 2.0 XML code for this query.
-        // All of this logic must be added again to give more specific prompts
-        // if (recentPrompt === "Create template for process model") {
-        //         queryToSendToAI = `You will be given a rough idea of what a process should do and the goal of it. 
-        //         For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping. 
-        //         You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's specific request for this template: ` : ''}${userInput}`;
-        //     } else if (recentPrompt === "Create process model from description") {
-        //         queryToSendToAI = `You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
-        //     } else if (recentPrompt === "Start modelling session from scratch") {
-        //         queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's initial thoughts: ` : ''}${userInput}`;
-        //     } else if (recentPrompt === "Generate process model") { // ADDED condition
-        //         queryToSendToAI = `Generate a BPMN 2.0 XML process model based on the following description. Ensure the XML is complete and renderable. ${includeDiagramInPrompt ? `\\n\\n(User also included their current diagram listed above.) User's description: ` : ''}${userInput}`;
-        //     }
-        // If none of this is true then use the user prompt as is
 
-        // HANDLING THE RESPONSE
-        // If the state renderDiagram is true then the AI must output the BPMN 2.0 XML code for the diagram
-        // There are 3 cases here:
-        // 1. The AI outputs the XML code and it is valid, then we import the XML code into the modeler
-        // 2. The AI outputs the XML code and it is invalid, then we send the displayed error to the AI and ask it to correct the XML code and output it again. The instruction to the AI is: "The model is incorrect: {Error} Please correct the model and don't forget to add the explanation, don't apologize, just answer as if nothing had happened"
-        // 3. The AI outputs an explanation of the model and not the XML code, then we ask it to output the XML code and add the explanation of the model. The instruction to the AI is: "The model is missing or is not output with the requeste format. Please add the model and don't forget to add the explanation, don't apologize, just answer as if nothing had happened" 
-        // If the state renderDiagram is false but we find the XML flags (<BPMN_XML_START>,</BPMN_XML_END>) in the response then we display the XML code in the chat and add the rest of the response as a text response
-        // If the state renderDiagram is false and no XML flags (<BPMN_XML_START>,</BPMN_XML_END>) are found in the response then the response is just a text response from the AI and we display it in the chat
-        let userInput = prompt;
-        let queryToSendToAI = userInput;
+        let userFacingPrompt;
+        let queryForAI;
+
+        if (typeof prompt === 'object' && prompt !== null && prompt.queryForAI) {
+            userFacingPrompt = prompt.userFacingPrompt;
+            queryForAI = prompt.queryForAI;
+        } else {
+            userFacingPrompt = prompt;
+            queryForAI = prompt;
+        }
+
+        // Log the prompt
+        const wordCount = String(userFacingPrompt || '').split(/\s+/).filter(Boolean).length;
+        setPromptLogs(prev => [...prev, { text: userFacingPrompt, wordCount }]);
+        setPromptCount(prev => prev + 1);
+        
+        let queryToSendToAI = queryForAI;
 
         // Compose the prompt based on recentPrompt and state
         if (recentPrompt === "Create template for process model") {
             queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a rough idea of what a process should do and the goal of it.
                                 For example: The process should: Receive new client orders for an online clothing shop. The goal of the process is: Processing the order of the client: ordering, paying and shipping.
-                                You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${userInput}`;
+                                You will output the BPMN 2.0 XML code for this process, consider all the tasks and gateways that should be in said process and add as many details as necessary even if they are not mentioned in the initial description. ${queryForAI}`;
         } else if (recentPrompt === "Create process model from description") {
-            queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${userInput}`;
+            queryToSendToAI = `<OUTPUT_MODEL_CODE> You will be given a detailed description of a process, your job is to translate that into BPMN 2.0 XML code as closely as possible while maintaining the process logically feasible and optimized. Add an explanation on the improvements you would do or details you might add. ${queryForAI}`;
         } else if (recentPrompt === "Start modelling session from scratch") {
-            queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${userInput}`;
+            queryToSendToAI = `In this task you will NOT output code for the process model if not prompted by the user to do so. Your job is to guide the user through the whole creation of a process model. Make questions that you consider important like, what is the context? Who are you modelling for? What is it that you want to prioritize in the process? ${queryForAI}`;
         } else if (recentPrompt === "Recommend next elements from file") {
-            queryToSendToAI = `<OUTPUT_MODEL_CODE> Given the following BPMN XML, recommend the next elements to add and explain why. ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}\n\nUser's request: ${userInput}`;
+            queryToSendToAI = `<OUTPUT_MODEL_CODE> Given the following BPMN XML, recommend the next elements to add and explain why. ${diagramXML ? `\n\nCurrent BPMN XML:\n${diagramXML}` : ''}\n\nUser's request: ${queryForAI}`;
         } else if (includeDiagramInPrompt){
             // If included diagram, append it to the prompt
-            queryToSendToAI = `<PROCESS_MODEL_CODE_INCLUDED> ${userInput}\\n ${diagramXML ? `\\n\\nCurrent BPMN XML:\\n${diagramXML}` : ''}`;
+            queryToSendToAI = `<PROCESS_MODEL_CODE_INCLUDED> ${queryForAI}\\n ${diagramXML ? `\\n\\nCurrent BPMN XML:\\n${diagramXML}` : ''}`;
         } else {
             // If no recent prompt, just use the user input
-            queryToSendToAI = userInput;
+            queryToSendToAI = queryForAI;
         }
 
         // If renderDiagram is true, instruct the AI to output BPMN 2.0 XML code
@@ -311,7 +322,7 @@ const ContextProvider = (props) => {
                     if (xml.trim().length > 0) {
                     setDiagramXML(xml);
                     xmlValid = true;
-                    setPrevPrompts(prev => [...prev, userInput]);
+                    setPrevPrompts(prev => [...prev, userFacingPrompt]);
                     const cleanResponse = formatAIResponseForHTML(extractNonBpmnXml(aiResponse));
                     setPrevResults(prev => [...prev, cleanResponse]);
                     setLoading(false);
@@ -339,7 +350,7 @@ const ContextProvider = (props) => {
                 const xml = extractBpmnXml(aiResponse);
                 if (xml) {
                 setDiagramXML(xml);
-                setPrevPrompts(prev => [...prev, userInput]);
+                setPrevPrompts(prev => [...prev, userFacingPrompt]);
                 const cleanResponse = formatAIResponseForHTML(extractNonBpmnXml(aiResponse));
                 setPrevResults(prev => [...prev, cleanResponse]);
                 setLoading(false);
@@ -350,7 +361,7 @@ const ContextProvider = (props) => {
                 break;
                 } else {
                 // Just a text response
-                setPrevPrompts(prev => [...prev, userInput]);
+                setPrevPrompts(prev => [...prev, userFacingPrompt]);
                 setPrevResults(prev => [...prev, aiResponse]);
                 setLoading(false);
                 setShowResult(true);
@@ -372,7 +383,7 @@ const ContextProvider = (props) => {
             setShowResult(true);
             setResultData("Failed to generate a valid BPMN XML after several attempts. Please try again or refine your prompt.");
         }
-        setRecentPrompt(userInput);
+        setRecentPrompt(userFacingPrompt);
         setInput("");
         // setIncludeDiagramInPrompt(false); // Do not reset here, allow user to keep it toggled
         // setIncludeSelectedElementsInPrompt(false); // Do not reset here
@@ -451,6 +462,14 @@ const ContextProvider = (props) => {
         isModelerInitialized, 
         setIsModelerInitialized, 
         reportRenderAttempt,
+        totalClicks,
+        bpmnPanelClicks,
+        incrementTotalClicks,
+        incrementBpmnPanelClicks,
+        promptLogs,
+        promptCount,
+        docLinkClicks,
+        incrementDocLinkClicks,
         // Add the prepare functions and others
         prepareCreateTemplate,
         prepareCreateFromDescription,
