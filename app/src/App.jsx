@@ -99,8 +99,15 @@ const App = () => {
         </div>
       </div>
       
-      {/* Container for bottom buttons */}
-      <div className="bottom-controls-container">
+      {/* Container for top buttons */}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        zIndex: 100,
+        display: 'flex',
+        gap: '10px'
+      }}>
         <button onClick={toggleChatVisibility} className="bottom-control-btn">
           {isChatVisible ? "Hide Chat" : "Show Chat"}
         </button>
