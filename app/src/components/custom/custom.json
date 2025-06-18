@@ -21,6 +21,17 @@
           "type": "String"
         }
       ]
+    },
+    {
+      "name": "CustomBaseElement",
+      "extends": [ "bpmn:BaseElement" ],
+      "properties": [
+        {
+          "name": "explanation",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
     }
   ],
   "enumerations": [],

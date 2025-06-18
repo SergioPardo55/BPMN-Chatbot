@@ -10,43 +10,34 @@ const AppianElementDetailsPanel = ({ details }) => {
 
     return (
         <div className="appian-details-panel">
-            <h4>Appian Element Details</h4>
-            <div className="details-content">
+            <div className="details-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 {details.customIconUrl && (
-                    <img 
-                        src={details.customIconUrl} 
-                        alt={details.customType || 'Appian Icon'} 
+                    <img
+                        src={details.customIconUrl}
+                        alt={details.customType || details.name || 'Appian Icon'}
                         className="details-icon"
-                        onError={(e) => e.target.style.display = 'none'} // Hide if icon fails to load
+                        style={{ width: 32, height: 32 }}
+                        onError={e => (e.target.style.display = 'none')}
                     />
                 )}
-                <div className="details-text">
-                    <p><strong>Name:</strong> {details.name}</p>
-                    <p><strong>Appian Type:</strong> {details.customType || 'N/A'}</p>
-                    <p><strong>BPMN Type:</strong> {details.type}</p>
-                    <p><strong>ID:</strong> {details.id}</p>
-                </div>
+                <span style={{ fontWeight: 'bold', fontSize: '1.1em' }}>{details.name}</span>
             </div>
-            {/* 
-              The following block renders the documentation text if details.customType exists.
-              It becomes a clickable link only if details.link is also a non-empty string.
-              If details.link is empty, the text is shown but is not a link.
-            */}
-            {details.customType && (
-                 <p>
-                    {details.documentationUrl ? ( // Renamed from details.link
-                        <a 
-                            href={details.documentationUrl} // Renamed from details.link
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                        >
-                            View Appian Documentation for {details.customType}
-                        </a>
-                    ) : (
-                        // Render just the text if no link is available
-                        <>View Appian Documentation for {details.customType}</>
-                    )}
+            {details.documentationUrl && (
+                <p style={{ marginTop: 10 }}>
+                    <a
+                        href={details.documentationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View Appian Documentation
+                    </a>
                 </p>
+            )}
+            {details.explanation && (
+                <div className="element-explanation" style={{ marginTop: 16 }}>
+                    <h4>Explanation</h4>
+                    <div>{details.explanation}</div>
+                </div>
             )}
         </div>
     );

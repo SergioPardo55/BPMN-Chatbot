@@ -46,36 +46,38 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
                 const selectedElement = newSelection[0];
                 const bo = selectedElement.businessObject;
                 let appianDataFromElement = null;
+                let customIconUrl = null;
+                let documentationUrl = '';
+                let customType = null;
 
+                // Try to get Appian info from extensionElements if present
                 if (bo.extensionElements && bo.extensionElements.values) {
                     appianDataFromElement = bo.extensionElements.values.find(
                         extElem => extElem.$type === 'custom:AppianServiceData'
                     );
+                    if (appianDataFromElement) {
+                        customType = appianDataFromElement.customType;
+                        customIconUrl = appianDataFromElement.customIconUrl;
+                        if (customType) {
+                            const serviceDefinition = appianSmartServices.find(
+                                service => service.customType === customType
+                            );
+                            documentationUrl = serviceDefinition ? serviceDefinition.documentationUrl : '';
+                        }
+                    }
                 }
-                console.log("[Modeler.jsx] Selection changed. AppianData from element:", appianDataFromElement); 
 
-                if (appianDataFromElement && appianDataFromElement.customType) {
-                    // Find the service in appianSmartServices to get the documentationUrl
-                    const serviceDefinition = appianSmartServices.find(
-                        service => service.customType === appianDataFromElement.customType
-                    );
-                    
-                    const dynamicDocumentationUrl = serviceDefinition ? serviceDefinition.documentationUrl : '';
-                    console.log("[Modeler.jsx] Dynamically retrieved documentationUrl:", dynamicDocumentationUrl, "for customType:", appianDataFromElement.customType);
-
-                    setSelectedAppianElementDetails({
-                        id: bo.id,
-                        name: bo.name || 'Unnamed Appian Element',
-                        type: bo.$type,
-                        customType: appianDataFromElement.customType,
-                        customIconUrl: appianDataFromElement.customIconUrl,
-                        documentationUrl: dynamicDocumentationUrl, // Use dynamically retrieved URL
-                    });
-                } else {
-                    setSelectedAppianElementDetails(null);
-                }
+                setSelectedAppianElementDetails({
+                    id: bo.id,
+                    name: bo.name || 'Unnamed Element',
+                    type: bo.$type,
+                    customType,
+                    customIconUrl,
+                    documentationUrl,
+                    explanation: bo.explanation || ''
+                });
             } else {
-                setSelectedAppianElementDetails(null); 
+                setSelectedAppianElementDetails(null);
             }
         };
 
