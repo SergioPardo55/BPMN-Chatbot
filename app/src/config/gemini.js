@@ -174,6 +174,7 @@ The only thing you are allowed and expected to modify in this case is the positi
     <bpmn:outgoing>Flow_To_EndEventProcessed</bpmn:outgoing>
   <bpmn:outgoing>Flow_19z4e3m</bpmn:outgoing>
 </bpmn:task>
+- Additionaly, with the presence of these 2 flags, you will also give out a summary of all the variables needed in the process and their corresponding data type.
 
 ## Ability
 - Generate valid BPMN 2.0 models with specified XML code, following the delimited structure above.
@@ -190,6 +191,7 @@ The only thing you are allowed and expected to modify in this case is the positi
 - **Closing**: End interactions by confirming that the customer's issue has been addressed.  
   _Example_: "Is there anything else I can help you with today?"`,
     tools: [{
+      
       urlContext: {
         mainReference:"https://docs.appian.com/suite/help/24.3/Smart_Services.html",
 

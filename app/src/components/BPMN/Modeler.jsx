@@ -14,6 +14,7 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
     const bpmnModelerRef = useRef(null);
     const [isCustomPanelVisible, setIsCustomPanelVisible] = useState(false);
     const [selectedAppianElementDetails, setSelectedAppianElementDetails] = useState(null); // New state
+    const [searchTerm, setSearchTerm] = useState(''); // State for the search term
 
     const { diagramXML, reportRenderAttempt, setSelectedBPMNElements, incrementBpmnPanelClicks } = useContext(Context);
 
@@ -229,6 +230,10 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
         }
     };
 
+    const filteredServices = appianSmartServices.filter(service =>
+        service.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="modeler-container-flex" style={{ position: 'relative', height: '100%', width: '100%' }} onClick={incrementBpmnPanelClicks}>
             <div id="canvas" className="canvas-flex-item"></div>
@@ -238,21 +243,43 @@ const BPMNModeler = forwardRef((props, ref) => { // Wrapped with forwardRef
             </div>
             {isCustomPanelVisible && (
                 <div className="custom-tools-panel">
-                    {appianSmartServices.map((service) => (
-                        <button 
-                            key={service.customType} 
-                            title={service.name} 
-                            onMouseDown={(event) => handleCreateShape(service, event)} 
-                            className="custom-tool-button"
-                        >
-                            <img 
-                                src={`${APPIAN_ICON_BASE_URL}${service.icon}`} 
-                                alt={service.name} 
-                                onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='inline'; }}
-                            />
-                            <span style={{display: 'none'}}>{service.name.substring(0,3)}</span> {/* Fallback text */}
-                        </button>
-                    ))}
+                    <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            width: 'calc(100% - 10px)',
+                            padding: '5px',
+                            margin: '5px',
+                            boxSizing: 'border-box',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                        }}
+                    />
+                    <div className="custom-tools-grid">
+                        {filteredServices.length > 0 ? (
+                            filteredServices.map((service) => (
+                                <button 
+                                    key={service.customType} 
+                                    title={service.name} 
+                                    onMouseDown={(event) => handleCreateShape(service, event)} 
+                                    className="custom-tool-button"
+                                >
+                                    <img 
+                                        src={`${APPIAN_ICON_BASE_URL}${service.icon}`} 
+                                        alt={service.name} 
+                                        onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='inline'; }}
+                                    />
+                                    <span style={{display: 'none'}}>{service.name.substring(0,3)}</span> {/* Fallback text */}
+                                </button>
+                            ))
+                        ) : (
+                            <p style={{ padding: '10px', color: '#666', textAlign: 'center', gridColumn: '1 / -1' }}>No services found.</p>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
