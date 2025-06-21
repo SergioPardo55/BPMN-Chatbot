@@ -12,7 +12,8 @@ const App = () => {
   
   const rightPaneRef = useRef(null);
   const modelerRef = useRef(null); // Ref for BPMNModeler
-  const { incrementTotalClicks, totalClicks, bpmnPanelClicks, promptLogs, promptCount, docLinkClicks } = useContext(Context);
+  const fileInputRef = useRef(null); // Ref for the file input
+  const { incrementTotalClicks, totalClicks, bpmnPanelClicks, promptLogs, promptCount, docLinkClicks, setDiagramXML } = useContext(Context);
 
   // Set initial width based on percentage once rightPaneRef is available
   useEffect(() => {
@@ -99,6 +100,29 @@ const App = () => {
     URL.revokeObjectURL(link.href);
   };
 
+  const handleLoadDiagramClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.name.endsWith('.bpmn')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const xml = e.target.result;
+        setDiagramXML(xml);
+      };
+      reader.onerror = (e) => {
+        console.error("Error reading file:", e);
+        alert("Error reading the BPMN file.");
+      };
+      reader.readAsText(file);
+    } else if (file) {
+      alert("Please select a valid .bpmn file.");
+    }
+    event.target.value = null; // Reset file input to allow re-uploading the same file
+  };
+
   const chatPanelStyle = {
     flexBasis: isChatVisible ? `${actualChatPanelWidth}px` : '0px',
     display: isChatVisible ? 'flex' : 'none', // Use 'flex' to allow Main to fill it
@@ -144,6 +168,16 @@ const App = () => {
         <button onClick={handleExportDiagramClick} className="bottom-control-btn">
           Export Diagram
         </button>
+        <button onClick={handleLoadDiagramClick} className="bottom-control-btn">
+          Load Diagram
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+          accept=".bpmn"
+        />
       </div>
     </div>
   );
